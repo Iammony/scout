@@ -1,302 +1,432 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
-import { Camera, MessageSquare, MapPin, Clock, Send, X, Loader2 } from 'lucide-react';
+import { Sparkles, ArrowLeft, Calendar, MapPin, User, LogOut, Camera } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import JourneyForm from '@/components/travel/JourneyForm';
+import ComprehensiveTravelGuide from '@/components/travel-deck/ComprehensiveTravelGuide';
+import AuthModal from '@/components/auth/AuthModal';
+import { TravelCaptureInput } from '@/lib/types/travel';
+import { TravelDeck } from '@/lib/types/travel-deck';
+import { useAuth } from '@/hooks/useAuth';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import MobileImageCapture from '@/components/travel/MobileImageCapture';
+import { getGuestTravelCards, storeGuestTravelCard, getGuestSessionInfo } from '@/lib/utils/session';
 
-interface QuickCaptureData {
+interface TravelCard {
   id: string;
-  timestamp: Date;
-  location?: {
-    lat: number;
-    lng: number;
-    address?: string;
-  };
-  image?: string;
-  note: string;
-  tags: string[];
+  destination: string;
+  origin: string;
+  travelType: string;
+  createdAt: string;
+  expiresAt?: string;
+  isGuestCard: boolean;
+  deck?: TravelDeck; // Add deck data
 }
 
-interface ScoutResponse {
-  success: boolean;
-  data?: any;
-  error?: string;
-}
+const Scout: React.FC = () => {
+  const [view, setView] = useState<'home' | 'create' | 'card' | 'mobile-image'>('home');
+  const [isCreating, setIsCreating] = useState(false);
+  const [travelCards, setTravelCards] = useState<TravelCard[]>(() => getGuestTravelCards());
+  const [currentCard, setCurrentCard] = useState<TravelCard | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [imageData, setImageData] = useState<{image: string, location?: string} | null>(null);
+  
+  const { user, isAuthenticated, isLoading, logout, refreshAuth } = useAuth();
+  const { isMobile } = useDeviceDetection();
+  const sessionInfo = getGuestSessionInfo();
 
-const QuickCapture: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [note, setNote] = useState('');
-  const [image, setImage] = useState<string | null>(null);
-  const [location, setLocation] = useState<GeolocationPosition | null>(null);
-  const [captures, setCaptures] = useState<QuickCaptureData[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [response, setResponse] = useState<ScoutResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Get user's location on component mount
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => setLocation(position),
-        (error) => console.log('Location access denied:', error)
-      );
-    }
-    // Load saved captures from localStorage
-    const savedCaptures = localStorage.getItem('quickCaptures');
-    if (savedCaptures) {
-      setCaptures(JSON.parse(savedCaptures));
-    }
-  }, []);
-
-  const handleImageCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    setResponse(null);
-
-    const newCapture: QuickCaptureData = {
-      id: Date.now().toString(),
-      timestamp: new Date(),
-      location: location ? {
-        lat: location.coords.latitude,
-        lng: location.coords.longitude
-      } : undefined,
-      image: image || undefined,
-      note: note.trim(),
-      tags: note.match(/#\w+/g)?.map(tag => tag.substring(1)) || []
-    };
-
+  const handleCreateCard = async (travelInput: TravelCaptureInput) => {
+    setIsCreating(true);
+    
     try {
-      const apiResponse = await fetch('/api/scout', {
+      console.log('Creating travel deck with:', travelInput);
+      
+      // Include authentication status in travel input
+      const enhancedTravelInput = {
+        ...travelInput,
+        isGuest: !isAuthenticated,
+        userId: isAuthenticated ? user?.id : undefined
+      };
+      
+      // Call the deck generation API instead of the basic travel API
+      const response = await fetch('/api/scout/deck', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newCapture),
+        body: JSON.stringify(enhancedTravelInput),
       });
 
-      const result = await apiResponse.json();
-      setResponse(result);
-
-      if (apiResponse.ok && result.success) {
-        // Save to localStorage and update captures list
-        const updatedCaptures = [...captures, newCapture];
-        setCaptures(updatedCaptures);
-        localStorage.setItem('quickCaptures', JSON.stringify(updatedCaptures));
-        
-        // Reset form
-        setNote('');
-        setImage(null);
-        setIsOpen(false);
-      } else {
-        setError(result.error || 'An error occurred while submitting the capture');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Failed to create travel deck (${response.status})`);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Network error occurred';
-      setError(errorMessage);
-      setResponse({ success: false, error: errorMessage });
+
+      const result = await response.json();
+      console.log('Deck creation result:', result);
+      
+      if (result.success && result.deck) {
+        // Store the card with deck data locally for guest users
+        const newCard: TravelCard = {
+          id: result.deck.id || `card_${Date.now()}`,
+          destination: travelInput.destination,
+          origin: travelInput.origin,
+          travelType: travelInput.travelType,
+          createdAt: new Date().toISOString(),
+          expiresAt: !isAuthenticated
+            ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() 
+            : undefined,
+          isGuestCard: !isAuthenticated,
+          deck: result.deck, // Include the full travel deck
+        };
+
+        if (!isAuthenticated) {
+          // Store with deck data for guest users
+          storeGuestTravelCard(newCard);
+        }
+
+        setTravelCards(prev => [newCard, ...prev]);
+        setCurrentCard(newCard);
+        setView('card');
+      } else {
+        throw new Error(result.error || 'Failed to create travel deck');
+      }
+    } catch (error) {
+      console.error('Error creating travel deck:', error);
+      alert(`Failed to create travel deck: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setIsLoading(false);
+      setIsCreating(false);
     }
   };
 
-  const formatTimestamp = (timestamp: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - new Date(timestamp).getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return 'Just now';
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
   };
 
+  const getDaysRemaining = (expiresAt: string) => {
+    const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+    return Math.max(0, days);
+  };
+
+  // Mobile image capture flow
+  if (view === 'mobile-image') {
+    return (
+      <MobileImageCapture
+        onImageCapture={(image, detectedLocation) => {
+          setImageData({ image, location: detectedLocation });
+          setView('create');
+        }}
+        onSkip={() => setView('create')}
+      />
+    );
+  }
+
+  if (view === 'create') {
+    return (
+      <JourneyForm
+        onComplete={handleCreateCard}
+        isGuest={!isAuthenticated}
+        initialData={imageData ? {
+          destination: imageData.location || '',
+          capturedImage: imageData.image
+        } : undefined}
+      />
+    );
+  }
+
+  if (view === 'card' && currentCard) {
+    // Show travel deck if available, otherwise show creation success message
+    if (currentCard.deck) {
+      return (
+        <ComprehensiveTravelGuide 
+          deck={currentCard.deck} 
+          onClose={() => setView('home')}
+        />
+      );
+    }
+
+    // Fallback to success message if deck is not available
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              onClick={() => setView('home')}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Home</span>
+            </Button>
+            <h1 className="text-xl font-semibold text-gray-900">Travel Card</h1>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <Card className="p-8">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <Sparkles className="w-8 h-8 text-green-600" />
+              </div>
+              
+              <h2 className="text-2xl font-bold text-gray-900">
+                Travel Deck Created Successfully! 🎉
+              </h2>
+              
+              <div className="bg-blue-50 rounded-lg p-6">
+                <h3 className="font-semibold text-blue-900 mb-2">
+                  {currentCard.origin} → {currentCard.destination}
+                </h3>
+                <p className="text-blue-700 text-sm">
+                  Travel Type: {currentCard.travelType.charAt(0).toUpperCase() + currentCard.travelType.slice(1)}
+                </p>
+                <p className="text-blue-700 text-sm">
+                  Created: {formatDate(currentCard.createdAt)}
+                </p>
+                {currentCard.isGuestCard && currentCard.expiresAt && (
+                  <p className="text-blue-700 text-sm">
+                    Expires in: {getDaysRemaining(currentCard.expiresAt)} days
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800 text-sm">
+                  ⚠️ Travel deck data is still being generated. Please refresh the page or try again in a moment.
+                </p>
+              </div>
+
+              {!isAuthenticated && currentCard.isGuestCard && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-amber-800 text-sm">
+                    💡 <strong>Guest Mode:</strong> This card will expire in {currentCard.expiresAt ? getDaysRemaining(currentCard.expiresAt) : 7} days.
+                  </p>
+                  <Button 
+                    size="sm" 
+                    className="mt-2 bg-blue-600 hover:bg-blue-700"
+                    onClick={() => { setAuthMode('signup'); setShowAuthModal(true); }}
+                  >
+                    Create Account to Save
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">Quick Capture</h1>
-          <button
-            onClick={() => setIsOpen(true)}
-            className="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Scout Travel</h1>
+            <p className="text-sm text-gray-600">Plan your perfect trip in 30 seconds</p>
+          </div>
+          <Button
+            onClick={() => setView(isMobile ? 'mobile-image' : 'create')}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2"
           >
-            <Camera className="w-6 h-6" />
-          </button>
+            {isMobile ? <Camera className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+            <span>{isMobile ? 'Snap Destination' : 'Create Travel Card'}</span>
+          </Button>
         </div>
       </div>
 
-      {/* Quick Capture Modal */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">New Capture</h2>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-                disabled={isLoading}
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              {/* Image Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image (optional)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleImageCapture}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  disabled={isLoading}
-                />
-                {image && (
-                  <div className="mt-2">
-                    <img
-                      src={image}
-                      alt="Captured"
-                      className="w-full max-w-xs h-32 object-cover rounded-md"
-                    />
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* User Info Card */}
+        <Card className="p-6 mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            {isAuthenticated && user ? (
+              <>
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full" />
+                    ) : (
+                      <User className="w-6 h-6 text-white" />
+                    )}
                   </div>
-                )}
-              </div>
-
-              {/* Note Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Note
-                </label>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="What's happening? Use #tags to categorize..."
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={isLoading}
-                  required
-                />
-                <div className="mt-1 text-xs text-gray-500">
-                  {note.match(/#\w+/g)?.length || 0} tags detected
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Welcome back, {user.name}!</h2>
+                    <p className="text-gray-600">Your travel cards are saved permanently</p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Location Info */}
-              {location && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  Location will be included
+                <div className="text-right">
+                  <Button 
+                    variant="outline" 
+                    className="border-red-300 text-red-700 hover:bg-red-100"
+                    onClick={logout}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
                 </div>
-              )}
-
-              {/* Error Display */}
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                  <p className="text-sm text-red-800">{error}</p>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Guest Session</h2>
+                  <p className="text-gray-600">
+                    You've created {sessionInfo.cardsCreated} travel cards • 
+                    {sessionInfo.daysRemaining} days remaining
+                  </p>
                 </div>
-              )}
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoading || !note.trim()}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Capture
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* API Response Preview */}
-            {response && (
-              <div className="border-t border-gray-200 p-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-2">API Response:</h3>
-                <div className="bg-gray-50 rounded-md p-3">
-                  <pre className="text-xs text-gray-600 whitespace-pre-wrap overflow-x-auto">
-                    {JSON.stringify(response, null, 2)}
-                  </pre>
+                <div className="text-right space-x-2">
+                  <Button 
+                    variant="outline" 
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    onClick={() => { setAuthMode('signup'); setShowAuthModal(true); }}
+                  >
+                    Create Account
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="text-blue-700 hover:bg-blue-100"
+                    onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                  >
+                    Sign In
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-1">Save cards permanently</p>
                 </div>
-              </div>
+              </>
             )}
           </div>
-        </div>
-      )}
+        </Card>
 
-      {/* Captures List */}
-      <div className="p-4 space-y-4">
-        {captures.length === 0 ? (
-          <div className="text-center py-12">
-            <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No captures yet</h3>
-            <p className="text-gray-600">Tap the camera button to create your first quick capture</p>
+        {/* Travel Cards List */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900">Your Travel Cards</h2>
+            {travelCards.length > 0 && (
+              <p className="text-gray-600">{travelCards.length} cards created</p>
+            )}
           </div>
-        ) : (
-          captures.map((capture) => (
-            <div key={capture.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Clock className="w-4 h-4 mr-1" />
-                  {formatTimestamp(capture.timestamp)}
-                  {capture.location && (
-                    <>
-                      <MapPin className="w-4 h-4 ml-3 mr-1" />
-                      Location
-                    </>
-                  )}
+
+          {travelCards.length === 0 ? (
+            <Card className="p-12 text-center">
+              <div className="space-y-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                  <MapPin className="w-8 h-8 text-gray-400" />
                 </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">No travel cards yet</h3>
+                  <p className="text-gray-600 mt-1">
+                    Create your first travel card to get comprehensive travel information
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setView(isMobile ? 'mobile-image' : 'create')}
+                  className="mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                >
+                  {isMobile ? <Camera className="w-4 h-4 mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                  {isMobile ? 'Snap Your Destination' : 'Create Your First Card'}
+                </Button>
               </div>
-              {capture.image && (
-                <div className="mb-3">
-                  <img
-                    src={capture.image}
-                    alt="Capture"
-                    className="w-full max-w-sm h-48 object-cover rounded-md"
-                  />
-                </div>
-              )}
-              <div className="text-gray-900 whitespace-pre-wrap mb-2">{capture.note}</div>
-              {capture.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {capture.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="inline-block bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {travelCards.map((card) => (
+                <Card
+                  key={card.id}
+                  className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => {
+                    setCurrentCard(card);
+                    setView('card');
+                  }}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {card.destination}
+                        </h3>
+                        <p className="text-sm text-gray-600">From {card.origin}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center space-x-1 text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs font-medium">
+                          <Calendar className="w-3 h-3" />
+                          <span>{card.travelType}</span>
+                        </div>
+                        {card.deck && (
+                          <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                            {card.deck.cards.length} cards
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <span>Created {formatDate(card.createdAt)}</span>
+                      {!isAuthenticated && card.isGuestCard && card.expiresAt && (
+                        <span className="text-amber-600">
+                          {getDaysRemaining(card.expiresAt)}d left
+                        </span>
+                      )}
+                      {isAuthenticated && (
+                        <span className="text-green-600 text-xs">
+                          Saved
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
-          ))
-        )}
+          )}
+        </div>
+
+        {/* Features Section */}
+        <Card className="p-8 mt-12">
+          <div className="text-center space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Everything you need for your perfect trip
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[
+                { icon: '✈️', title: 'Flight Options', desc: 'Best routes & prices' },
+                { icon: '🏨', title: 'Hotels', desc: 'Curated accommodations' },
+                { icon: '🌤️', title: 'Weather', desc: '7-day forecast' },
+                { icon: '🎯', title: 'Attractions', desc: 'Top things to do' },
+                { icon: '🍛', title: 'Indian Food', desc: 'Veg-friendly options' },
+                { icon: '💰', title: 'Budget', desc: 'Complete cost breakdown' },
+                { icon: '🛂', title: 'Visa Info', desc: 'Requirements & docs' },
+                { icon: '📱', title: 'Travel Essentials', desc: 'UPI, SIM & more' },
+              ].map((feature, index) => (
+                <div key={index} className="text-center space-y-2">
+                  <div className="text-2xl">{feature.icon}</div>
+                  <h3 className="font-medium text-gray-900">{feature.title}</h3>
+                  <p className="text-sm text-gray-600">{feature.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
+      
+      {/* Authentication Modal */}
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          refreshAuth();
+          // Refresh travel cards after login
+          setTravelCards(getGuestTravelCards());
+        }}
+        defaultMode={authMode}
+      />
     </div>
   );
 };
 
-export default QuickCapture;
+export default Scout;
