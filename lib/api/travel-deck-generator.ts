@@ -370,8 +370,8 @@ export class TravelDeckGenerator {
     const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
     
     switch (cardType) {
-      case 'overview':
-        return this.generateOverviewFromAPI(input, apiData, isDomestic);
+      case 'trip-summary':
+        return await this.generateTripSummaryFromAPI(input, apiData, isDomestic);
       
       case 'itinerary':
         return this.generateItineraryFromAPI(input, apiData, isDomestic);
@@ -501,13 +501,13 @@ Return ONLY the JSON content for the card.`;
   
   private getCardTitle(cardType: string, destination: string): string {
     const titles: Record<string, string> = {
-      overview: `${destination} Overview`,
+      'trip-summary': `${destination} Trip Overview`,
       itinerary: 'Your Journey Itinerary',
       transport: 'Transportation Guide',
       accommodation: 'Where to Stay',
       attractions: 'Must-See & Do',
       dining: 'Food & Dining',
-      budget: 'Budget Planner',
+      budget: 'Detailed Budget Breakdown',
       visa: 'Visa & Documentation',
       weather: 'Weather & Packing',
       culture: 'Culture & Customs',
@@ -520,13 +520,13 @@ Return ONLY the JSON content for the card.`;
   
   private getCardSubtitle(cardType: string, input: TravelCaptureInput): string {
     const subtitles: Record<string, string> = {
-      overview: `${input.duration} trip for ${this.getTravelerCount(input)} travelers`,
+      'trip-summary': `${input.duration} ${input.budget.toLowerCase()} trip for ${this.getTravelerCount(input)} travelers`,
       itinerary: `Day-by-day plan for your ${input.duration} journey`,
       transport: 'Flights, trains, and local transport',
       accommodation: `${input.budget} tier options`,
       attractions: 'Top places and experiences',
       dining: 'Restaurants and local cuisine',
-      budget: `${input.budget} budget breakdown`,
+      budget: `Detailed ${input.budget.toLowerCase()} budget breakdown`,
       visa: 'For Indian passport holders',
       weather: `${input.season} season travel`,
       culture: 'Local customs and etiquette',
@@ -539,7 +539,7 @@ Return ONLY the JSON content for the card.`;
   
   private getCardPriority(cardType: string): number {
     const priorities: Record<string, number> = {
-      overview: 1,
+      'trip-summary': 1,
       itinerary: 2,
       transport: 3,
       accommodation: 4,
@@ -606,16 +606,40 @@ Return ONLY the JSON content for the card.`;
     
     // Return comprehensive mock content based on card type
     const mockContents: Record<string, any> = {
-      overview: {
+      'trip-summary': {
         destination: input.destination,
         country: isDomestic ? 'India' : this.getCountryFromDestination(input.destination),
         duration: input.duration,
         travelType: input.travelType,
+        travelerCount: this.getTravelerCount(input),
+        budget: input.budget,
         highlights: this.getDestinationHighlights(input.destination),
+        totalBudget: {
+          formatted: isDomestic ? '₹25,000' : '$800 (₹66,000)',
+          formattedPerPerson: isDomestic ? '₹12,500' : '$400 (₹33,000)'
+        },
+        budgetBreakdown: {
+          flights: { formatted: isDomestic ? '₹8,000' : '$300 (₹25,000)' },
+          accommodation: { 
+            formatted: isDomestic ? '₹10,000' : '$200 (₹16,500)', 
+            perNight: isDomestic ? '₹3,500' : '$65 (₹5,400)' 
+          },
+          dailyExpenses: { 
+            formatted: isDomestic ? '₹7,000' : '$300 (₹25,000)', 
+            perDay: isDomestic ? '₹2,300' : '$100 (₹8,300)' 
+          }
+        },
+        quickTips: [
+          'Book flights 2-3 months in advance',
+          isDomestic ? 'Budget ₹2,500/day for comfortable travel' : 'Budget $100/day for comfortable travel',
+          isDomestic ? 'Carry cash for local vendors' : 'Notify bank about international travel',
+          'Check visa requirements early'
+        ],
         bestTime: 'October to March',
         currency: localCurrency,
         languages: this.getDestinationLanguages(input.destination),
-        quickTips: this.getDestinationTips(input.destination, isDomestic)
+        weatherHint: 'Pleasant weather expected for your travel season',
+        isDomestic
       },
       
       itinerary: {
@@ -703,6 +727,145 @@ Return ONLY the JSON content for the card.`;
   }
 
   // Real API content generation methods
+  private async generateTripSummaryFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): Promise<any> {
+    const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
+    const travelGuide = apiData?.travelGuide;
+    const flights = apiData?.flights;
+    const hotels = apiData?.hotels;
+    
+    // Use RapidAPI pricing calculations for summary
+    const flightPricing = rapidAPIClient.calculateAverageFlightPrice(Array.isArray(flights) ? flights : []);
+    const hotelPricing = rapidAPIClient.calculateAverageHotelPrice(Array.isArray(hotels) ? hotels : []);
+    
+    const duration = parseInt(input.duration) || 3;
+    const travelerCount = this.getTravelerCount(input);
+    
+    // Calculate budget overview
+    const flightCostPerPerson = flightPricing.average || (isDomestic ? 8000 : 25000);
+    const totalFlightCost = flightCostPerPerson * travelerCount;
+    
+    let accommodationDaily = hotelPricing.overall.average;
+    if (input.budget === 'Tight' && hotelPricing.budget.average > 0) {
+      accommodationDaily = hotelPricing.budget.average;
+    } else if (input.budget === 'Luxury' && hotelPricing.luxury.average > 0) {
+      accommodationDaily = hotelPricing.luxury.average;
+    } else if (hotelPricing.midRange.average > 0) {
+      accommodationDaily = hotelPricing.midRange.average;
+    }
+    
+    if (!accommodationDaily || accommodationDaily === 0) {
+      accommodationDaily = isDomestic ? 
+        (input.budget === 'Tight' ? 1800 : input.budget === 'Luxury' ? 8000 : 3500) :
+        (input.budget === 'Tight' ? 4500 : input.budget === 'Luxury' ? 18000 : 8500);
+    }
+    
+    const budgetMultiplier = input.budget === 'Tight' ? 0.7 : input.budget === 'Luxury' ? 1.8 : 1.0;
+    const foodDaily = Math.round((isDomestic ? 1200 : 2000) * budgetMultiplier);
+    const transportDaily = Math.round((isDomestic ? 800 : 1500) * budgetMultiplier);
+    const activitiesDaily = Math.round((isDomestic ? 1000 : 2000) * budgetMultiplier);
+    
+    const dailyTotal = accommodationDaily + foodDaily + transportDaily + activitiesDaily;
+    const tripTotal = (dailyTotal * duration) + totalFlightCost;
+    const perPersonTotal = Math.round(tripTotal / travelerCount);
+
+    // Exchange rate calculation
+    let exchangeRate = null;
+    let inrEquivalent = null;
+    
+    if (!isDomestic) {
+      try {
+        const rate = await currencyAPI.getExchangeRate(localCurrency, 'INR');
+        if (rate) {
+          exchangeRate = rate.rate;
+          inrEquivalent = {
+            total: Math.round(tripTotal * rate.rate),
+            perPerson: Math.round(perPersonTotal * rate.rate)
+          };
+        }
+      } catch (error) {
+        exchangeRate = this.getMockExchangeRate(localCurrency);
+        inrEquivalent = {
+          total: Math.round(tripTotal * exchangeRate),
+          perPerson: Math.round(perPersonTotal * exchangeRate)
+        };
+      }
+    }
+
+    return {
+      destination: input.destination,
+      country: isDomestic ? 'India' : this.getCountryFromDestination(input.destination),
+      duration: input.duration,
+      travelType: input.travelType,
+      travelerCount: travelerCount,
+      budget: input.budget,
+      
+      // Trip highlights from API data
+      highlights: travelGuide?.attractions?.slice(0, 4).map((attr: any) => attr.name) || 
+                 this.getDestinationHighlights(input.destination),
+      
+      // Budget summary
+      totalBudget: {
+        amount: tripTotal,
+        perPerson: perPersonTotal,
+        currency: localCurrency,
+        currencySymbol: this.getCurrencySymbol(localCurrency),
+        formatted: `${this.getCurrencySymbol(localCurrency)}${tripTotal.toLocaleString()}`,
+        formattedPerPerson: `${this.getCurrencySymbol(localCurrency)}${perPersonTotal.toLocaleString()}`
+      },
+      
+      inrEquivalent: inrEquivalent ? {
+        total: inrEquivalent.total,
+        perPerson: inrEquivalent.perPerson,
+        formatted: `₹${inrEquivalent.total.toLocaleString()}`,
+        formattedPerPerson: `₹${inrEquivalent.perPerson.toLocaleString()}`
+      } : null,
+      
+      // Quick budget breakdown
+      budgetBreakdown: {
+        flights: {
+          amount: totalFlightCost,
+          formatted: `${this.getCurrencySymbol(localCurrency)}${totalFlightCost.toLocaleString()}`
+        },
+        accommodation: {
+          amount: accommodationDaily * duration,
+          formatted: `${this.getCurrencySymbol(localCurrency)}${(accommodationDaily * duration).toLocaleString()}`,
+          perNight: `${this.getCurrencySymbol(localCurrency)}${accommodationDaily.toLocaleString()}`
+        },
+        dailyExpenses: {
+          amount: (foodDaily + transportDaily + activitiesDaily) * duration,
+          formatted: `${this.getCurrencySymbol(localCurrency)}${((foodDaily + transportDaily + activitiesDaily) * duration).toLocaleString()}`,
+          perDay: `${this.getCurrencySymbol(localCurrency)}${(foodDaily + transportDaily + activitiesDaily).toLocaleString()}`
+        }
+      },
+      
+      // Pricing insights
+      pricingInsights: {
+        flightRange: flightPricing.formattedRange,
+        hotelRange: hotelPricing.overall.formattedRange,
+        dataQuality: flightPricing.average > 0 && hotelPricing.overall.average > 0 ? 'Real pricing data' : 'Estimated pricing'
+      },
+      
+      // Key travel info
+      bestTime: travelGuide?.localInfo?.bestTimeToVisit || 'October to March',
+      currency: localCurrency,
+      languages: this.getDestinationLanguages(input.destination),
+      
+      // Quick tips
+      quickTips: [
+        `Book ${duration} days in advance for better flight rates`,
+        `Budget ${this.getCurrencySymbol(localCurrency)}${(dailyTotal).toLocaleString()} per day for comfortable travel`,
+        isDomestic ? 'Carry cash for local vendors' : 'Notify bank about international travel',
+        'Check visa requirements and book accommodations early'
+      ],
+      
+      // Weather hint
+      weatherHint: travelGuide?.localInfo?.weather || this.getSeasonalWeather(input.destination, input.season),
+      
+      isDomestic,
+      exchangeRate
+    };
+  }
+
   private generateOverviewFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
     const travelGuide = apiData?.travelGuide;
     const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
@@ -809,31 +972,65 @@ Return ONLY the JSON content for the card.`;
     const flights = apiData?.flights;
     const hotels = apiData?.hotels;
     
-    // Calculate real budget based on API data
-    const flightCost = this.extractFlightCost(flights, isDomestic);
-    const hotelCost = this.extractHotelCost(hotels, isDomestic);
-    const duration = parseInt(input.duration) || 3;
+    // Use RapidAPI pricing calculations
+    const flightPricing = rapidAPIClient.calculateAverageFlightPrice(Array.isArray(flights) ? flights : []);
+    const hotelPricing = rapidAPIClient.calculateAverageHotelPrice(Array.isArray(hotels) ? hotels : []);
     
-    const baseDaily = isDomestic ? 3000 : 5000;
-    const accommodationDaily = hotelCost || (isDomestic ? 2500 : 4000);
-    const foodDaily = isDomestic ? 1200 : 2000;
-    const transportDaily = isDomestic ? 800 : 1500;
-    const activitiesDaily = isDomestic ? 1000 : 2000;
+    const duration = parseInt(input.duration) || 3;
+    const travelerCount = this.getTravelerCount(input);
+    
+    // Use averaged pricing from API data
+    const flightCostPerPerson = flightPricing.average || (isDomestic ? 8000 : 25000);
+    const totalFlightCost = flightCostPerPerson * travelerCount;
+    
+    // Use hotel category based on budget level
+    let accommodationDaily = hotelPricing.overall.average;
+    if (input.budget === 'Tight' && hotelPricing.budget.average > 0) {
+      accommodationDaily = hotelPricing.budget.average;
+    } else if (input.budget === 'Luxury' && hotelPricing.luxury.average > 0) {
+      accommodationDaily = hotelPricing.luxury.average;
+    } else if (hotelPricing.midRange.average > 0) {
+      accommodationDaily = hotelPricing.midRange.average;
+    }
+    
+    // Fallback to reasonable defaults if no API data
+    if (!accommodationDaily || accommodationDaily === 0) {
+      accommodationDaily = isDomestic ? 
+        (input.budget === 'Tight' ? 1800 : input.budget === 'Luxury' ? 8000 : 3500) :
+        (input.budget === 'Tight' ? 4500 : input.budget === 'Luxury' ? 18000 : 8500);
+    }
+    
+    // Other daily costs based on budget level and destination
+    const budgetMultiplier = input.budget === 'Tight' ? 0.7 : input.budget === 'Luxury' ? 1.8 : 1.0;
+    const foodDaily = Math.round((isDomestic ? 1200 : 2000) * budgetMultiplier);
+    const transportDaily = Math.round((isDomestic ? 800 : 1500) * budgetMultiplier);
+    const activitiesDaily = Math.round((isDomestic ? 1000 : 2000) * budgetMultiplier);
     
     const dailyTotal = accommodationDaily + foodDaily + transportDaily + activitiesDaily;
-    const tripTotal = (dailyTotal * duration) + (flightCost || (isDomestic ? 8000 : 25000));
+    const tripTotal = (dailyTotal * duration) + totalFlightCost;
     
     const budget = {
-      level: input.budget || 'comfortable',
+      level: input.budget || 'Comfortable',
       total: tripTotal,
       daily: dailyTotal,
+      perPerson: Math.round(tripTotal / travelerCount),
       breakdown: {
+        flights: totalFlightCost,
         accommodation: accommodationDaily * duration,
         food: foodDaily * duration,
-        transport: (transportDaily * duration) + (flightCost || 0),
+        transport: transportDaily * duration,
         activities: activitiesDaily * duration,
         shopping: Math.round(dailyTotal * duration * 0.15),
         miscellaneous: Math.round(dailyTotal * duration * 0.1)
+      },
+      pricingInsights: {
+        flightRange: flightPricing.formattedRange,
+        hotelRange: hotelPricing.overall.formattedRange,
+        hotelByCategory: {
+          budget: hotelPricing.budget.formatted,
+          midRange: hotelPricing.midRange.formatted,
+          luxury: hotelPricing.luxury.formatted
+        }
       }
     };
 
@@ -847,7 +1044,8 @@ Return ONLY the JSON content for the card.`;
           exchangeRate = rate.rate;
           inrEquivalent = {
             total: Math.round(budget.total * rate.rate),
-            daily: Math.round(budget.daily * rate.rate)
+            daily: Math.round(budget.daily * rate.rate),
+            perPerson: Math.round(budget.perPerson * rate.rate)
           };
         }
       } catch (error) {
@@ -855,7 +1053,8 @@ Return ONLY the JSON content for the card.`;
         exchangeRate = this.getMockExchangeRate(localCurrency);
         inrEquivalent = {
           total: Math.round(budget.total * exchangeRate),
-          daily: Math.round(budget.daily * exchangeRate)
+          daily: Math.round(budget.daily * exchangeRate),
+          perPerson: Math.round(budget.perPerson * exchangeRate)
         };
       }
     }
@@ -868,17 +1067,19 @@ Return ONLY the JSON content for the card.`;
       exchangeRate,
       budget,
       inrEquivalent,
+      travelerCount,
       tips: [
-        'Book accommodations in advance for better rates',
-        'Use local transport to save money',
-        isDomestic ? 'Carry cash for small vendors' : 'Notify your bank about international travel',
-        'Compare prices before making purchases',
-        'Keep receipts for tax purposes'
+        'Book flights and accommodations in advance for better rates',
+        'Consider traveling during off-peak seasons for significant savings',
+        isDomestic ? 'Carry cash for small vendors and local transport' : 'Notify your bank about international travel',
+        'Compare prices on multiple booking platforms',
+        'Keep all receipts for expense tracking'
       ],
       realData: {
-        flightCostUsed: flightCost,
-        hotelCostUsed: hotelCost,
-        source: 'RapidAPI + Real Exchange Rates'
+        flightPricingUsed: flightPricing.formattedRange,
+        hotelPricingUsed: hotelPricing.overall.formattedRange,
+        source: 'RapidAPI + Real Exchange Rates',
+        dataQuality: flightPricing.average > 0 && hotelPricing.overall.average > 0 ? 'High' : 'Estimated'
       }
     };
   }
@@ -1541,6 +1742,25 @@ Return ONLY the JSON content for the card.`;
 
   private getMockCustomsLimits(isDomestic: boolean): any {
     return isDomestic ? null : { dutyfree: '$800', restrictions: 'No food items' };
+  }
+
+  private getSeasonalWeather(destination: string, season: string): string {
+    const weatherMap: Record<string, Record<string, string>> = {
+      'Winter': {
+        'default': 'Cool and pleasant, perfect for sightseeing'
+      },
+      'Summer': {
+        'default': 'Warm weather, ideal for outdoor activities'
+      },
+      'Monsoon': {
+        'default': 'Rainy season, pack waterproof gear'
+      },
+      'Flexible': {
+        'default': 'Variable weather, pack for all conditions'
+      }
+    };
+
+    return weatherMap[season]?.default || 'Pleasant weather expected';
   }
 }
 

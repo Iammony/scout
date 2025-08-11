@@ -225,9 +225,12 @@ export class EnhancedContentGenerator {
    */
   private extractRelevantApiData(cardType: TravelDeckType, validatedData: ValidatedApiData): any {
     switch (cardType) {
-      case 'overview':
+      case 'trip-summary':
         return {
           travelGuide: validatedData.travelGuide.usable ? validatedData.travelGuide.data : null,
+          flights: validatedData.flights.usable ? validatedData.flights.data : null,
+          hotels: validatedData.hotels.usable ? validatedData.hotels.data : null,
+          currency: validatedData.currency.usable ? validatedData.currency.data : null,
           destination: validatedData.travelGuide.data?.region || validatedData.travelGuide.data?.destination
         };
       
@@ -279,14 +282,17 @@ ${dataQualityInfo}
 
 CRITICAL REQUIREMENTS:
 1. Use provided API data as PRIMARY source when available and high-quality
-2. Enhance API data with your expertise, don't just reformat it
-3. Fill gaps in API data with realistic, actionable information
-4. Focus on Indian traveler needs (vegetarian options, visa for Indian passport, INR pricing)
-5. Provide specific, actionable advice with exact timings, costs, and locations
-6. Return ONLY valid JSON with the exact structure expected for ${cardType} cards
-7. Never mention API limitations or data quality in the output
+2. Write in natural, conversational, human-friendly language - NO raw data dumps
+3. Convert lists into flowing sentences (e.g., "The highlights include beautiful temples, delicious street food, and historic architecture" instead of "highlights: ['temples', 'food', 'architecture']")
+4. Format pricing information clearly with context (e.g., "Flight tickets cost around ₹8,500-12,000 per person" instead of "price: 8500")
+5. Focus on Indian traveler needs (vegetarian options, visa for Indian passport, INR pricing)
+6. Provide specific, actionable advice with exact timings, costs, and locations in readable format
+7. Return ONLY valid JSON with human-readable content, not structured data lists
+8. Never mention API limitations or data quality in the output
 
-OUTPUT FORMAT: Return only JSON content suitable for direct use in the travel card UI.`;
+WRITING STYLE: Write as if you're personally recommending to a friend - warm, informative, and conversational.
+
+OUTPUT FORMAT: Return only JSON content with human-readable text suitable for direct display in the travel card UI.`;
   }
 
   /**
@@ -294,6 +300,32 @@ OUTPUT FORMAT: Return only JSON content suitable for direct use in the travel ca
    */
   private buildApiEnhancedUserPrompt(cardType: TravelDeckType, input: TravelCaptureInput, apiData: any): string {
     const apiDataStr = apiData ? JSON.stringify(apiData, null, 2) : 'No API data available';
+    
+    // Add pricing analysis if this is transport or accommodation card
+    let pricingAnalysis = '';
+    if (cardType === 'transport' && apiData?.flights) {
+      const flights = Array.isArray(apiData.flights) ? apiData.flights : [];
+      if (flights.length > 0) {
+        const prices = flights.map(f => f.price || 0).filter(p => p > 0);
+        if (prices.length > 0) {
+          const avg = Math.round(prices.reduce((sum, p) => sum + p, 0) / prices.length);
+          const min = Math.min(...prices);
+          const max = Math.max(...prices);
+          pricingAnalysis = `\nFLIGHT PRICING ANALYSIS: Average flight cost is ₹${avg.toLocaleString()}, ranging from ₹${min.toLocaleString()} to ₹${max.toLocaleString()}. Use this for budget recommendations.`;
+        }
+      }
+    } else if (cardType === 'accommodation' && apiData?.hotels) {
+      const hotels = Array.isArray(apiData.hotels) ? apiData.hotels : [];
+      if (hotels.length > 0) {
+        const prices = hotels.map(h => h.pricePerNight || h.price_per_night || 0).filter(p => p > 0);
+        if (prices.length > 0) {
+          const avg = Math.round(prices.reduce((sum, p) => sum + p, 0) / prices.length);
+          const min = Math.min(...prices);
+          const max = Math.max(...prices);
+          pricingAnalysis = `\nHOTEL PRICING ANALYSIS: Average hotel cost is ₹${avg.toLocaleString()} per night, ranging from ₹${min.toLocaleString()} to ₹${max.toLocaleString()}. Use this for accommodation recommendations.`;
+        }
+      }
+    }
     
     return `Create a comprehensive ${cardType} card for this travel request:
 
@@ -309,14 +341,17 @@ TRAVEL REQUEST:
 - Motivation: ${input.motivation}
 
 AVAILABLE API DATA:
-${apiDataStr}
+${apiDataStr}${pricingAnalysis}
 
 TASK: Create a detailed, actionable ${cardType} card that:
 1. Integrates ALL useful information from the API data
-2. Enhances it with practical travel advice
-3. Formats everything for optimal user experience
-4. Includes specific costs, timings, and booking information
-5. Addresses Indian traveler concerns
+2. Converts pricing data into conversational, readable text (e.g., "Flight tickets typically cost around ₹8,500-12,000 per person for this route")
+3. Writes in natural, friendly language that's easy to read
+4. Includes specific costs, timings, and booking information in readable format
+5. Addresses Indian traveler concerns in conversational style
+6. Makes recommendations sound personal and helpful
+
+WRITING STYLE: Write as if you're giving advice to a close friend who's planning this trip.
 
 Generate the JSON content now:`;
   }
@@ -330,18 +365,21 @@ Generate the JSON content now:`;
 APPROACH:
 - Use any available API insights as reference points
 - Generate comprehensive content using your travel expertise
+- Write in natural, conversational, human-friendly language
 - Focus on practical, actionable information for Indian travelers
-- Ensure all costs are realistic and properly formatted
-- Include specific recommendations with exact details
+- Ensure all costs are realistic and properly formatted with context
 
 REQUIREMENTS:
-1. Create detailed, structured content for ${cardType}
-2. Include realistic pricing in appropriate currency (INR for domestic, dual currency for international)
-3. Provide specific timings, locations, and booking advice
-4. Address Indian traveler needs (vegetarian food, visa requirements, cultural considerations)
-5. Return only valid JSON suitable for immediate use
+1. Write content in flowing, readable paragraphs and sentences
+2. Convert pricing data into clear statements (e.g., "Hotels typically cost ₹3,500-6,000 per night for good mid-range options")
+3. Make lists conversational (e.g., "You'll love exploring the vibrant markets, trying authentic local cuisine, and visiting historic temples")
+4. Provide specific timings, locations, and booking advice in readable format
+5. Address Indian traveler needs (vegetarian food, visa requirements, cultural considerations)
+6. Return only valid JSON with human-readable text content
 
-The API data provides some context but your expertise should fill all gaps.`;
+WRITING STYLE: Write as a knowledgeable travel friend giving personalized advice.
+
+The API data provides some context but your expertise should fill all gaps with conversational, human-readable content.`;
   }
 
   /**
@@ -385,19 +423,22 @@ Return the JSON content:`;
 EXPERTISE FOCUS:
 - Indian travelers' specific needs and preferences
 - Realistic pricing for both domestic and international travel
-- Practical, actionable travel advice
-- Cultural and practical considerations
+- Practical, actionable travel advice written in conversational style
+- Cultural and practical considerations explained clearly
 - Budget-conscious recommendations with premium options
 
 CARD REQUIREMENTS:
-1. Generate detailed, structured ${cardType} content
-2. Include realistic costs in appropriate currencies
-3. Provide specific locations, timings, and booking strategies
-4. Address visa requirements for Indian passport holders (international travel)
-5. Include vegetarian/dietary options and cultural tips
-6. Focus on practical, actionable information
+1. Write in natural, flowing language that's easy to read and understand
+2. Convert pricing into readable statements with context (e.g., "You can expect to spend around ₹2,500-4,000 per night for comfortable hotels")
+3. Transform lists into conversational text (e.g., "The best time to visit is from October to March when the weather is pleasant and perfect for sightseeing")
+4. Provide specific locations, timings, and booking strategies in readable paragraphs
+5. Address visa requirements for Indian passport holders in clear, actionable language
+6. Include vegetarian/dietary options and cultural tips in friendly tone
+7. Focus on practical, actionable information written as personal recommendations
 
-OUTPUT: Return only JSON content formatted for immediate use in the travel card interface.`;
+WRITING STYLE: Write as if you're a trusted travel advisor giving personalized suggestions to a friend.
+
+OUTPUT: Return only JSON content with human-readable, conversational text formatted for immediate display in the travel card interface.`;
   }
 
   /**
@@ -592,9 +633,19 @@ Generate the JSON content:`;
   private generateBasicStructuredContent(cardType: TravelDeckType, input: TravelCaptureInput): any {
     // Emergency fallback content
     const basicContent: Record<TravelDeckType, any> = {
-      overview: {
+      'trip-summary': {
         destination: input.destination || 'Travel Destination',
         highlights: ['Explore local culture', 'Try authentic cuisine', 'Visit famous landmarks'],
+        totalBudget: { 
+          formatted: '₹25,000', 
+          formattedPerPerson: '₹12,500' 
+        },
+        budgetBreakdown: {
+          flights: { formatted: '₹10,000' },
+          accommodation: { formatted: '₹8,000', perNight: '₹2,500' },
+          dailyExpenses: { formatted: '₹7,000', perDay: '₹2,000' }
+        },
+        quickTips: ['Book in advance', 'Check weather', 'Carry essentials', 'Plan activities'],
         bestTime: 'October to March',
         duration: input.duration || '3-5 days'
       },

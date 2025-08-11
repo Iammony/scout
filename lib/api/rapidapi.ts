@@ -421,6 +421,94 @@ export class RapidAPIClient {
     return rateLimiter.getRemainingRequests(host);
   }
 
+  /**
+   * Calculate average pricing from flight data
+   */
+  calculateAverageFlightPrice(flightData: any[]): { average: number, range: { min: number, max: number }, formattedAverage: string, formattedRange: string } {
+    if (!flightData || flightData.length === 0) {
+      return {
+        average: 0,
+        range: { min: 0, max: 0 },
+        formattedAverage: 'Price not available',
+        formattedRange: 'Price range not available'
+      };
+    }
+
+    const prices = flightData.map(flight => flight.price || flight.averagePrice || 0).filter(p => p > 0);
+    if (prices.length === 0) {
+      return {
+        average: 0,
+        range: { min: 0, max: 0 },
+        formattedAverage: 'Price not available',
+        formattedRange: 'Price range not available'
+      };
+    }
+
+    const average = Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+
+    return {
+      average,
+      range: { min, max },
+      formattedAverage: `₹${average.toLocaleString()}`,
+      formattedRange: `₹${min.toLocaleString()} - ₹${max.toLocaleString()}`
+    };
+  }
+
+  /**
+   * Calculate average pricing from hotel data
+   */
+  calculateAverageHotelPrice(hotelData: any[]): { 
+    budget: { average: number, formatted: string }, 
+    midRange: { average: number, formatted: string }, 
+    luxury: { average: number, formatted: string },
+    overall: { average: number, range: { min: number, max: number }, formattedAverage: string, formattedRange: string }
+  } {
+    if (!hotelData || hotelData.length === 0) {
+      return {
+        budget: { average: 0, formatted: 'Price not available' },
+        midRange: { average: 0, formatted: 'Price not available' },
+        luxury: { average: 0, formatted: 'Price not available' },
+        overall: { average: 0, range: { min: 0, max: 0 }, formattedAverage: 'Price not available', formattedRange: 'Price range not available' }
+      };
+    }
+
+    const prices = hotelData.map(hotel => hotel.pricePerNight || hotel.price_per_night || hotel.averagePrice || 0).filter(p => p > 0);
+    const budgetPrices = hotelData.filter(h => h.category === 'budget').map(h => h.pricePerNight || h.price_per_night || 0).filter(p => p > 0);
+    const midPrices = hotelData.filter(h => h.category === 'mid-range').map(h => h.pricePerNight || h.price_per_night || 0).filter(p => p > 0);
+    const luxuryPrices = hotelData.filter(h => h.category === 'luxury').map(h => h.pricePerNight || h.price_per_night || 0).filter(p => p > 0);
+
+    const budgetAvg = budgetPrices.length > 0 ? Math.round(budgetPrices.reduce((sum, p) => sum + p, 0) / budgetPrices.length) : 0;
+    const midAvg = midPrices.length > 0 ? Math.round(midPrices.reduce((sum, p) => sum + p, 0) / midPrices.length) : 0;
+    const luxuryAvg = luxuryPrices.length > 0 ? Math.round(luxuryPrices.reduce((sum, p) => sum + p, 0) / luxuryPrices.length) : 0;
+
+    const overallAvg = prices.length > 0 ? Math.round(prices.reduce((sum, p) => sum + p, 0) / prices.length) : 0;
+    const min = prices.length > 0 ? Math.min(...prices) : 0;
+    const max = prices.length > 0 ? Math.max(...prices) : 0;
+
+    return {
+      budget: { 
+        average: budgetAvg, 
+        formatted: budgetAvg > 0 ? `₹${budgetAvg.toLocaleString()}` : 'Not available' 
+      },
+      midRange: { 
+        average: midAvg, 
+        formatted: midAvg > 0 ? `₹${midAvg.toLocaleString()}` : 'Not available' 
+      },
+      luxury: { 
+        average: luxuryAvg, 
+        formatted: luxuryAvg > 0 ? `₹${luxuryAvg.toLocaleString()}` : 'Not available' 
+      },
+      overall: {
+        average: overallAvg,
+        range: { min, max },
+        formattedAverage: overallAvg > 0 ? `₹${overallAvg.toLocaleString()}` : 'Price not available',
+        formattedRange: min > 0 && max > 0 ? `₹${min.toLocaleString()} - ₹${max.toLocaleString()}` : 'Price range not available'
+      }
+    };
+  }
+
   // Mock data methods for development
   private getMockWeatherData(destination: string) {
     return {
@@ -440,45 +528,109 @@ export class RapidAPIClient {
   }
 
   private getMockFlightData(origin: string, destination: string) {
+    const isDomestic = this.isDomesticTravel(origin, destination);
+    const basePrice = isDomestic ? 8500 : 35000;
+    const priceVariation = isDomestic ? 2000 : 8000;
+    
     return [
       {
         airline: 'IndiGo',
-        price: 8500,
-        duration: '2h 15m',
+        price: basePrice,
+        duration: isDomestic ? '2h 15m' : '6h 30m',
         stops: 0,
         departure: '06:00',
-        arrival: '08:15',
-        bookingLink: 'https://example.com/book-flight-1'
+        arrival: isDomestic ? '08:15' : '18:30',
+        bookingLink: 'https://example.com/book-flight-1',
+        averagePrice: basePrice + (priceVariation / 4),
+        priceRange: {
+          min: basePrice - (priceVariation / 2),
+          max: basePrice + priceVariation
+        }
       },
       {
-        airline: 'Air India',
-        price: 9200,
-        duration: '2h 30m',
-        stops: 0,
+        airline: isDomestic ? 'Air India' : 'Emirates',
+        price: basePrice + 700,
+        duration: isDomestic ? '2h 30m' : '7h 15m',
+        stops: isDomestic ? 0 : 1,
         departure: '14:30',
-        arrival: '17:00',
-        bookingLink: 'https://example.com/book-flight-2'
+        arrival: isDomestic ? '17:00' : '09:45',
+        bookingLink: 'https://example.com/book-flight-2',
+        averagePrice: basePrice + 700 + (priceVariation / 4),
+        priceRange: {
+          min: basePrice - (priceVariation / 2),
+          max: basePrice + priceVariation + 700
+        }
+      },
+      {
+        airline: isDomestic ? 'SpiceJet' : 'Qatar Airways',
+        price: basePrice - 500,
+        duration: isDomestic ? '2h 45m' : '8h 20m',
+        stops: isDomestic ? 0 : 1,
+        departure: '09:15',
+        arrival: isDomestic ? '12:00' : '14:35',
+        bookingLink: 'https://example.com/book-flight-3',
+        averagePrice: basePrice - 500 + (priceVariation / 4),
+        priceRange: {
+          min: basePrice - 500 - (priceVariation / 2),
+          max: basePrice - 500 + priceVariation
+        }
       }
     ];
   }
 
   private getMockHotelData(destination: string) {
+    const isDomestic = destination.toLowerCase().includes('india') || 
+                      ['mumbai', 'delhi', 'bangalore', 'chennai', 'kolkata', 'pune', 'hyderabad', 'goa', 'kerala', 'rajasthan'].some(city => destination.toLowerCase().includes(city));
+    
+    const budgetPrice = isDomestic ? 1800 : 4500;
+    const midPrice = isDomestic ? 3500 : 8500;
+    const luxuryPrice = isDomestic ? 8000 : 18000;
+    
     return [
       {
         name: 'Grand Palace Hotel',
         rating: 4.2,
-        pricePerNight: 3500,
+        pricePerNight: midPrice,
+        price_per_night: midPrice,
         location: `Central ${destination}`,
         amenities: ['WiFi', 'Pool', 'Gym', 'Spa'],
-        bookingLink: 'https://example.com/book-hotel-1'
+        bookingLink: 'https://example.com/book-hotel-1',
+        category: 'mid-range',
+        averagePrice: midPrice,
+        priceRange: {
+          min: midPrice - 500,
+          max: midPrice + 1000
+        }
       },
       {
         name: 'Budget Inn',
         rating: 3.8,
-        pricePerNight: 1800,
+        pricePerNight: budgetPrice,
+        price_per_night: budgetPrice,
         location: `${destination} City Center`,
         amenities: ['WiFi', 'AC', 'Restaurant'],
-        bookingLink: 'https://example.com/book-hotel-2'
+        bookingLink: 'https://example.com/book-hotel-2',
+        category: 'budget',
+        averagePrice: budgetPrice,
+        priceRange: {
+          min: budgetPrice - 300,
+          max: budgetPrice + 700
+        }
+      },
+      {
+        name: 'Luxury Resort',
+        rating: 4.8,
+        pricePerNight: luxuryPrice,
+        price_per_night: luxuryPrice,
+        location: `Premium ${destination}`,
+        amenities: ['WiFi', 'Pool', 'Gym', 'Spa', 'Fine Dining', 'Concierge'],
+        bookingLink: 'https://example.com/book-hotel-3',
+        category: 'luxury',
+        averagePrice: luxuryPrice,
+        priceRange: {
+          min: luxuryPrice - 2000,
+          max: luxuryPrice + 5000
+        }
       }
     ];
   }

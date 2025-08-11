@@ -93,7 +93,7 @@ export const MODEL_CONFIGS = {
 
 // Card deck types for comprehensive travel planning
 export const TRAVEL_DECK_TYPES = [
-  'overview',      // Overall trip summary and highlights
+  'trip-summary',  // At-a-glance trip overview with key highlights and budget
   'itinerary',     // Day-by-day detailed itinerary
   'transport',     // Flights, trains, local transport
   'accommodation', // Hotels, hostels, stays
@@ -129,7 +129,7 @@ export type ContentStrategy = typeof CONTENT_STRATEGIES[keyof typeof CONTENT_STR
 
 // Card-specific model mapping for optimal output quality
 export const CARD_MODEL_MAPPING = {
-  overview: MODEL_CONFIGS.TRAVEL_PLANNING,
+  'trip-summary': MODEL_CONFIGS.TRAVEL_PLANNING,
   itinerary: MODEL_CONFIGS.TRAVEL_PLANNING,
   transport: MODEL_CONFIGS.LOGISTICS,
   accommodation: MODEL_CONFIGS.LOGISTICS,
