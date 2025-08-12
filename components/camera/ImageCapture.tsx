@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { Camera, Upload, X, RotateCcw, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -173,9 +174,11 @@ export function ImageCapture({
         <CardContent className="p-4">
           <div className="space-y-4">
             <div className="relative">
-              <img
+              <Image
                 src={capturedImage.preview}
                 alt="Captured"
+                width={400}
+                height={256}
                 className="w-full h-64 object-cover rounded-lg border border-gray-200"
               />
             </div>

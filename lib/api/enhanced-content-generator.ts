@@ -289,6 +289,7 @@ CRITICAL REQUIREMENTS:
 6. Provide specific, actionable advice with exact timings, costs, and locations in readable format
 7. Return ONLY valid JSON with human-readable content, not structured data lists
 8. Never mention API limitations or data quality in the output
+9. FOR FAMILY TRAVEL: Consider children's ages for activity recommendations, family rooms in hotels, child-friendly restaurants, safety considerations, and age-appropriate attractions
 
 WRITING STYLE: Write as if you're personally recommending to a friend - warm, informative, and conversational.
 
@@ -306,9 +307,9 @@ OUTPUT FORMAT: Return only JSON content with human-readable text suitable for di
     if (cardType === 'transport' && apiData?.flights) {
       const flights = Array.isArray(apiData.flights) ? apiData.flights : [];
       if (flights.length > 0) {
-        const prices = flights.map(f => f.price || 0).filter(p => p > 0);
+        const prices = flights.map((f: any) => f.price || 0).filter((p: number) => p > 0);
         if (prices.length > 0) {
-          const avg = Math.round(prices.reduce((sum, p) => sum + p, 0) / prices.length);
+          const avg = Math.round(prices.reduce((sum: number, p: number) => sum + p, 0) / prices.length);
           const min = Math.min(...prices);
           const max = Math.max(...prices);
           pricingAnalysis = `\nFLIGHT PRICING ANALYSIS: Average flight cost is ₹${avg.toLocaleString()}, ranging from ₹${min.toLocaleString()} to ₹${max.toLocaleString()}. Use this for budget recommendations.`;
@@ -317,9 +318,9 @@ OUTPUT FORMAT: Return only JSON content with human-readable text suitable for di
     } else if (cardType === 'accommodation' && apiData?.hotels) {
       const hotels = Array.isArray(apiData.hotels) ? apiData.hotels : [];
       if (hotels.length > 0) {
-        const prices = hotels.map(h => h.pricePerNight || h.price_per_night || 0).filter(p => p > 0);
+        const prices = hotels.map((h: any) => h.pricePerNight || h.price_per_night || 0).filter((p: number) => p > 0);
         if (prices.length > 0) {
-          const avg = Math.round(prices.reduce((sum, p) => sum + p, 0) / prices.length);
+          const avg = Math.round(prices.reduce((sum: number, p: number) => sum + p, 0) / prices.length);
           const min = Math.min(...prices);
           const max = Math.max(...prices);
           pricingAnalysis = `\nHOTEL PRICING ANALYSIS: Average hotel cost is ₹${avg.toLocaleString()} per night, ranging from ₹${min.toLocaleString()} to ₹${max.toLocaleString()}. Use this for accommodation recommendations.`;
@@ -339,6 +340,10 @@ TRAVEL REQUEST:
 - Dietary: ${input.dietary}
 - Season: ${input.season}
 - Motivation: ${input.motivation}
+${input.travelType === 'family' && input.travelerDetails.familyMembers ? 
+`- Family: ${input.travelerDetails.familyMembers.adults} adult(s), ${input.travelerDetails.familyMembers.children} child(ren)${input.travelerDetails.familyMembers.childrenAges?.length ? ` (ages: ${input.travelerDetails.familyMembers.childrenAges.join(', ')})` : ''}${input.travelerDetails.familyMembers.seniors ? `, ${input.travelerDetails.familyMembers.seniors} senior(s)` : ''}` : ''}${input.travelType === 'single' && input.travelerDetails.travelerAge ? 
+`- Traveler Age: ${input.travelerDetails.travelerAge} years` : ''}${input.travelType === 'group' && input.travelerDetails.groupSize ? 
+`- Group Size: ${input.travelerDetails.groupSize} people` : ''}
 
 AVAILABLE API DATA:
 ${apiDataStr}${pricingAnalysis}
@@ -457,12 +462,17 @@ TRAVELER PROFILE:
 - Dietary Requirements: ${input.dietary}
 - Travel Season: ${input.season}
 - Travel Motivation: ${input.motivation}
+${input.travelType === 'family' && input.travelerDetails.familyMembers ? 
+`- Family Composition: ${input.travelerDetails.familyMembers.adults} adult(s), ${input.travelerDetails.familyMembers.children} child(ren)${input.travelerDetails.familyMembers.childrenAges?.length ? ` (ages: ${input.travelerDetails.familyMembers.childrenAges.join(', ')})` : ''}${input.travelerDetails.familyMembers.seniors ? `, ${input.travelerDetails.familyMembers.seniors} senior(s)` : ''}` : ''}${input.travelType === 'single' && input.travelerDetails.travelerAge ? 
+`- Age: ${input.travelerDetails.travelerAge} years` : ''}${input.travelType === 'group' && input.travelerDetails.groupSize ? 
+`- Group Size: ${input.travelerDetails.groupSize} people` : ''}
 
 Using your travel expertise, create comprehensive ${cardType} content that includes:
 - Specific recommendations with exact costs and locations
 - Practical booking and timing advice
 - Indian traveler considerations (visas, food, culture)
 - Realistic budget estimates
+${input.travelType === 'family' && input.travelerDetails.familyMembers?.children ? '- Family-friendly recommendations considering children\'s ages, safety, and comfort' : ''}
 - Actionable next steps
 
 Generate the JSON content:`;
@@ -563,7 +573,7 @@ Generate the JSON content:`;
    */
   private getExpectedFieldCount(cardType: TravelDeckType): number {
     const counts: Record<TravelDeckType, number> = {
-      overview: 6,
+      'trip-summary': 8,
       itinerary: 4,
       transport: 5,
       accommodation: 4,

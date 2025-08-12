@@ -354,12 +354,82 @@ Instead:
 
 ### Security Guidelines
 
-When contributing:
-- **Never commit** API keys or secrets
-- **Validate all inputs** on the server side
+When contributing code to Scout, security is our top priority. Follow these guidelines:
+
+#### Critical Security Requirements
+
+- **Never commit** API keys, secrets, or sensitive data
+- **Use environment variables** for all configuration
+- **Validate all inputs** using Zod schemas on the server side
+- **Implement rate limiting** for new API endpoints
 - **Use HTTPS** for all external requests
 - **Follow OWASP guidelines** for web security
-- **Test authentication** and authorization
+- **Test authentication** and authorization flows
+
+#### Enhanced Security Features
+
+Scout implements enterprise-grade security. When contributing:
+
+1. **Request Signing**: Use HMAC signatures for sensitive operations
+   ```typescript
+   // For sensitive operations in production
+   import { requireSignedRequest } from '@/lib/security/request-signing';
+   
+   const validator = requireSignedRequest();
+   const result = await validator(request);
+   ```
+
+2. **Session Management**: Use enhanced session system
+   ```typescript
+   // Use enhanced sessions with device fingerprinting
+   import { enhancedSessionManager } from '@/lib/auth/enhanced-session';
+   
+   const sessionId = await enhancedSessionManager.createSession(userId, request);
+   ```
+
+3. **Database Security**: Follow secure database patterns
+   ```typescript
+   // Use secure database manager
+   import { dbManager } from '@/lib/db/db-config';
+   
+   const result = await dbManager.executeWithTimeout(operation);
+   ```
+
+4. **Input Validation**: Comprehensive validation required
+   ```typescript
+   // Always validate inputs with Zod
+   import { z } from 'zod';
+   
+   const schema = z.object({
+     username: z.string().regex(/^[a-zA-Z0-9]{3,20}$/),
+     email: z.string().email()
+   });
+   ```
+
+#### Security Testing Checklist
+
+Before submitting security-related changes:
+
+- [ ] **Rate limiting** tested and functional
+- [ ] **Input validation** prevents injection attacks
+- [ ] **Authentication** flows work correctly
+- [ ] **Session security** properly implemented
+- [ ] **CAPTCHA** integration tested
+- [ ] **Error handling** doesn't leak sensitive data
+- [ ] **Environment variables** properly configured
+- [ ] **HTTPS** enforced in production
+- [ ] **Security headers** set correctly
+- [ ] **npm audit** shows zero vulnerabilities
+
+#### Security Code Review
+
+All security-related changes require:
+
+1. **Security-focused code review**
+2. **Testing against common attack vectors**
+3. **Validation of rate limiting**
+4. **Session security verification**
+5. **Input sanitization testing**
 
 ## 📝 Documentation
 

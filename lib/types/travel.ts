@@ -82,7 +82,7 @@ export interface TravelCaptureInput {
 
 // Form State Management
 export interface JourneyFormState {
-  currentStep: 1 | 2 | 3 | 4;
+  currentStep: 1 | 2 | 3 | 4 | 5;
   completedSteps: number[];
   data: {
     step1?: TravelTypeStep;
@@ -115,6 +115,46 @@ export interface TravelCard {
   createdAt: Date;
   expiresAt?: Date;
   shareToken?: string;
+  isPublic?: boolean; // Whether card is public
+  publicMetadata?: PublicCardMetadata; // Metadata for public display
+}
+
+// Public card metadata for display
+export interface PublicCardMetadata {
+  title: string; // User-defined title for the card
+  description?: string; // Optional description
+  createdBy: string; // Username of creator
+  createdByUserId: string; // User ID for reference
+  tags: string[]; // Tags for categorization
+  likes: number; // Number of likes
+  views: number; // Number of views
+  featured: boolean; // Whether card is featured
+  publishedAt: Date; // When card was made public
+}
+
+// Public card display interface
+export interface PublicTravelCard {
+  id: string;
+  title: string;
+  description?: string;
+  destination: string;
+  origin: string;
+  travelType: TravelType;
+  duration: string;
+  budget: Budget;
+  tags: string[];
+  createdBy: string;
+  createdByUserId: string;
+  likes: number;
+  views: number;
+  featured: boolean;
+  publishedAt: Date;
+  thumbnail?: string; // Generated thumbnail
+  preview: {
+    highlights: string[];
+    totalCost: number;
+    currency: string;
+  };
 }
 
 export interface TravelCardData {

@@ -139,16 +139,16 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
   };
 
   const goToStep = (step: number) => {
-    if (step >= 1 && step <= 4) {
-      setFormState(prev => ({ ...prev, currentStep: step as 1 | 2 | 3 | 4 }));
+    if (step >= 1 && step <= 5) {
+      setFormState(prev => ({ ...prev, currentStep: step as 1 | 2 | 3 | 4 | 5 }));
     }
   };
 
   const goNext = () => {
-    if (formState.currentStep < 4 && isCurrentStepValid()) {
+    if (formState.currentStep < 5 && isCurrentStepValid()) {
       setFormState(prev => ({ 
         ...prev, 
-        currentStep: (prev.currentStep + 1) as 1 | 2 | 3 | 4 
+        currentStep: (prev.currentStep + 1) as 1 | 2 | 3 | 4 | 5
       }));
     }
   };
@@ -157,7 +157,7 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
     if (formState.currentStep > 1) {
       setFormState(prev => ({ 
         ...prev, 
-        currentStep: (prev.currentStep - 1) as 1 | 2 | 3 | 4 
+        currentStep: (prev.currentStep - 1) as 1 | 2 | 3 | 4 | 5
       }));
     }
   };
@@ -206,11 +206,8 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
         return;
       }
 
-      // Submit to parent component with captcha payload
-      await onComplete({
-        ...travelInput,
-        altcha: captchaPayload // Include captcha payload for verification
-      } as any);
+      // Submit to parent component
+      await onComplete(travelInput);
       
     } catch (error) {
       console.error('Form submission error:', error);
@@ -278,27 +275,30 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
     // Mark step 5 as completed
     setFormState(prev => ({
       ...prev,
-      completedSteps: [...new Set([...prev.completedSteps, 5])],
+      completedSteps: Array.from(new Set([...prev.completedSteps, 5])),
       isValid: true // Final validation
     }));
   };
 
   return (
-    <MobileContainer fullHeight className="bg-gradient-to-br from-blue-50 via-white to-purple-50" padding="none">
+    <MobileContainer fullHeight className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-black transition-colors duration-300" padding="none">
+      {/* Web3 Mesh Background */}
+      <div className="fixed inset-0 bg-web3-mesh dark:bg-web3-mesh-dark opacity-20 dark:opacity-10 pointer-events-none" />
+      
       {/* Progress Header */}
-      <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-40 glass dark:glass-dark backdrop-blur-xl border-b border-web3-violet-200/50 dark:border-web3-violet-800/30 shadow-web3">
         <div className="max-w-4xl mx-auto px-4 py-4">
           {/* Progress Bar */}
           <div className="mb-4">
             <div className="flex justify-between items-center mb-2">
-              <h1 className="text-lg font-semibold text-gray-900">Create Travel Card</h1>
-              <span className="text-sm text-gray-500">
+              <h1 className="text-lg font-semibold bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-pink-400 bg-clip-text text-transparent">Create Travel Card</h1>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 Step {formState.currentStep} of 5
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
               <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                className="h-2 rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-web3-violet-500 to-web3-purple-500 shadow-neon"
                 style={{ width: `${getProgressPercentage()}%` }}
               />
             </div>
@@ -316,19 +316,19 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
                   disabled={!formState.completedSteps.includes(step.number) && step.number !== formState.currentStep}
                   className={`w-full text-left ${
                     formState.completedSteps.includes(step.number) 
-                      ? 'cursor-pointer hover:bg-gray-50' 
+                      ? 'cursor-pointer hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20' 
                       : step.number === formState.currentStep 
                         ? 'cursor-default' 
                         : 'cursor-not-allowed opacity-50'
-                  } p-2 rounded-lg transition-colors`}
+                  } p-2 rounded-lg transition-all duration-300`}
                 >
                   <div className="flex items-center space-x-2">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300 ${
                       formState.completedSteps.includes(step.number)
-                        ? 'bg-green-100 text-green-800'
+                        ? 'bg-gradient-to-r from-web3-violet-500 to-web3-purple-500 text-white shadow-neon'
                         : step.number === formState.currentStep
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-400'
+                          ? 'bg-gradient-to-r from-web3-violet-400 to-web3-purple-400 text-white shadow-web3'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                     }`}>
                       {formState.completedSteps.includes(step.number) ? (
                         <Check className="w-3 h-3" />
@@ -337,8 +337,10 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className={`text-sm font-medium truncate ${
-                        step.number === formState.currentStep ? 'text-blue-900' : 'text-gray-700'
+                      <p className={`text-sm font-medium truncate transition-colors duration-300 ${
+                        step.number === formState.currentStep 
+                          ? 'text-web3-violet-700 dark:text-web3-violet-400' 
+                          : 'text-gray-700 dark:text-gray-300'
                       }`}>
                         {step.title}
                       </p>
@@ -353,14 +355,20 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
 
       {/* Form Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Card className="p-8">
-          {renderCurrentStep()}
+        <Card className="p-8 glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 shadow-web3">
+          <div className="relative">
+            {/* Step content with subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-web3-violet-50/30 via-transparent to-web3-purple-50/30 dark:from-web3-violet-900/10 dark:via-transparent dark:to-web3-purple-900/10 rounded-lg pointer-events-none" />
+            <div className="relative">
+              {renderCurrentStep()}
+            </div>
+          </div>
 
           {/* Error Display */}
           {errors.length > 0 && (
-            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <h3 className="text-sm font-medium text-red-800">Please fix the following errors:</h3>
-              <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
+            <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl backdrop-blur-sm">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-400">Please fix the following errors:</h3>
+              <ul className="mt-2 text-sm text-red-700 dark:text-red-300 list-disc list-inside">
                 {errors.map((error, index) => (
                   <li key={index}>{error}</li>
                 ))}
@@ -369,12 +377,12 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200 gap-4">
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-web3-violet-200 dark:border-web3-violet-800/30 gap-4">
             <TouchButton
               variant="outline"
               onClick={goBack}
               disabled={formState.currentStep === 1 || isSubmitting}
-              className="flex items-center space-x-2 min-w-[100px]"
+              className="flex items-center space-x-2 min-w-[100px] border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -385,7 +393,7 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
                 variant="primary"
                 onClick={goNext}
                 disabled={!isCurrentStepValid() || isSubmitting}
-                className="flex items-center space-x-2 min-w-[100px]"
+                className="flex items-center space-x-2 min-w-[100px] bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 hover:from-web3-violet-500 hover:to-web3-purple-500 text-white shadow-web3 hover:shadow-neon transition-all duration-300 border-0"
               >
                 <span>Next</span>
                 <ArrowRight className="w-4 h-4" />
@@ -395,7 +403,7 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
                 variant="primary"
                 onClick={handleSubmit}
                 disabled={!formState.isValid || isSubmitting}
-                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 min-w-[140px]"
+                className="flex items-center space-x-2 bg-gradient-to-r from-web3-neon-purple to-web3-neon-pink hover:from-web3-neon-purple/90 hover:to-web3-neon-pink/90 text-white shadow-neon hover:shadow-neon-intense transition-all duration-300 border-0 min-w-[140px]"
               >
                 {isSubmitting ? (
                   <>
@@ -414,8 +422,8 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
 
           {/* Guest Mode Notice */}
           {isGuest && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
+            <div className="mt-6 p-4 glass dark:glass-dark border border-web3-violet-200 dark:border-web3-violet-800/30 rounded-xl shadow-web3">
+              <p className="text-sm text-web3-violet-800 dark:text-web3-violet-300">
                 💡 <strong>Guest Mode:</strong> Your travel card will be available for 7 days. 
                 Create an account to save it permanently and access additional features.
               </p>

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rapidAPIClient } from '@/lib/api/rapidapi';
 import { currencyAPI } from '@/lib/api/currency';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log('Testing RapidAPI integration configuration...');
@@ -26,26 +29,31 @@ export async function GET(request: NextRequest) {
       console.log('RapidAPI key found, testing real API calls...');
       
       const testDestination = 'Dubai';
-      let travelGuideData = null;
+      let tripAdvisorData = null;
       let errors: string[] = [];
       
       try {
-        // Test a lightweight API call
-        travelGuideData = await rapidAPIClient.getTravelGuideInfo(testDestination, ['cultural']);
-        console.log('Travel guide API test successful');
+        // Test TripAdvisor location search first
+        const locationSearch = await rapidAPIClient.searchTripAdvisorLocation(testDestination);
+        if (locationSearch && locationSearch.length > 0) {
+          const geoId = locationSearch[0].geoId || locationSearch[0].id || '60763';
+          tripAdvisorData = await rapidAPIClient.getTripAdvisorHotels(geoId);
+          console.log('TripAdvisor API test successful');
+        }
       } catch (error) {
-        errors.push(`Travel Guide API: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        console.warn('Travel guide API failed:', error);
+        errors.push(`TripAdvisor API: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.warn('TripAdvisor API failed:', error);
       }
       
       testResults.actualApiTest = {
-        travelGuide: {
-          success: !!travelGuideData,
-          data: travelGuideData ? 'Real data received' : 'Failed to fetch',
-          sampleData: travelGuideData ? {
-            destination: travelGuideData.region,
-            attractionsCount: travelGuideData.attractions?.length || 0,
-            dataSource: 'RapidAPI'
+        tripAdvisor: {
+          success: !!tripAdvisorData,
+          data: tripAdvisorData ? 'Real data received' : 'Failed to fetch',
+          sampleData: tripAdvisorData ? {
+            destination: testDestination,
+            hotelsCount: tripAdvisorData.data?.length || 0,
+            totalResults: tripAdvisorData.paging?.totalResults || 'N/A',
+            dataSource: 'TripAdvisor via RapidAPI'
           } : null
         },
         errors: errors.length > 0 ? errors : null
@@ -60,7 +68,7 @@ export async function GET(request: NextRequest) {
       apiKeyPresent: hasRapidApiKey,
       apiKeyLength: rapidApiKeyLength > 0 ? `${rapidApiKeyLength} characters` : 'Not configured',
       integrationFeatures: {
-        travelGuideAPI: 'Configured',
+        tripAdvisorAPI: 'Configured (Hotels & Locations)',
         flightDataAPI: 'Configured', 
         hotelBookingAPI: 'Configured',
         trainAPI: 'Configured (domestic)',

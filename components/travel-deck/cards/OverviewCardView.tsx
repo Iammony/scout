@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { MapPin, Calendar, Users, Globe, MessageCircle, Star } from 'lucide-react';
-import { OverviewCard } from '@/lib/types/travel-deck';
+import { TripSummaryCard } from '@/lib/types/travel-deck';
 import { Badge } from '@/components/ui/badge';
 
 interface OverviewCardViewProps {
-  card: OverviewCard;
+  card: TripSummaryCard;
   isFullscreen?: boolean;
 }
 
@@ -73,7 +73,7 @@ export default function OverviewCardView({ card, isFullscreen }: OverviewCardVie
           Destination Highlights
         </h3>
         <div className="flex flex-wrap gap-2">
-          {content.highlights.map((highlight, index) => (
+          {content.highlights.map((highlight: string, index: number) => (
             <Badge key={index} variant="secondary" className="px-3 py-1">
               {highlight}
             </Badge>
@@ -95,7 +95,7 @@ export default function OverviewCardView({ card, isFullscreen }: OverviewCardVie
         <div className="space-y-3">
           <h3 className="font-semibold text-gray-900">Quick Tips</h3>
           <ul className="space-y-2">
-            {content.quickTips.map((tip, index) => (
+            {content.quickTips.map((tip: string, index: number) => (
               <li key={index} className="flex items-start gap-2">
                 <span className="text-blue-600 mt-1">•</span>
                 <span className="text-gray-700">{tip}</span>

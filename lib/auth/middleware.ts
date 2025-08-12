@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { userRepository } from '@/lib/db/axiodb-user-repository';
 import { User } from '@/lib/types/user';
+import { enhancedSessionManager } from './enhanced-session';
 
 export async function getAuthenticatedUser(request: NextRequest): Promise<User | null> {
   try {
@@ -10,21 +11,20 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<User |
       return null;
     }
 
-    // Find session
-    const session = await userRepository.findSession(sessionId);
+    // Use enhanced session validation with device fingerprinting
+    const validationResult = await enhancedSessionManager.validateSession(sessionId, request);
     
-    if (!session) {
+    if (!validationResult.valid || !validationResult.session) {
       return null;
     }
 
-    // Check if session is expired
-    if (new Date(session.expiresAt) < new Date()) {
-      await userRepository.deleteSession(sessionId);
-      return null;
+    // Log security events for high-risk sessions
+    if (validationResult.riskLevel === 'high') {
+      console.warn(`🚨 High-risk session access: ${sessionId} (user: ${validationResult.session.userId})`);
     }
 
     // Find user
-    const user = await userRepository.findById(session.userId);
+    const user = await userRepository.findById(validationResult.session.userId);
     
     if (!user) {
       return null;

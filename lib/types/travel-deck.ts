@@ -1,5 +1,6 @@
 // Travel Deck Type Definitions
 import { TravelDeckType } from '@/lib/api/openrouter-config';
+import { UnsplashImage } from '@/lib/api/unsplash';
 
 // Base content metadata
 export interface ContentMetadata {
@@ -26,21 +27,37 @@ export interface TravelCard {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  images?: {
+    hero?: UnsplashImage;
+    gallery?: UnsplashImage[];
+    background?: UnsplashImage;
+  };
 }
 
-// Overview Card
-export interface OverviewCard extends TravelCard {
-  type: 'overview';
+// Trip Summary Card
+export interface TripSummaryCard extends TravelCard {
+  type: 'trip-summary';
   content: {
     destination: string;
     country: string;
     duration: string;
     travelType: string;
     highlights: string[];
+    totalBudget: {
+      formatted: string;
+      formattedPerPerson: string;
+    };
+    budgetBreakdown: {
+      flights: { formatted: string };
+      accommodation: { formatted: string; perNight: string };
+      dailyExpenses: { formatted: string; perDay: string };
+    };
+    quickTips: string[];
     bestTime: string;
     currency: string;
     languages: string[];
-    quickTips: string[];
+    weatherHint: string;
+    isDomestic: boolean;
     _metadata?: ContentMetadata;
   };
 }
@@ -425,7 +442,7 @@ export interface ShoppingCard extends TravelCard {
 
 // Union type for all card types
 export type TravelDeckCard = 
-  | OverviewCard
+  | TripSummaryCard
   | ItineraryCard
   | TransportCard
   | AccommodationCard

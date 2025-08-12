@@ -40,25 +40,25 @@ export default function DestinationAndTiming({
       value: 'Winter',
       label: 'Winter (Dec-Feb)',
       description: 'Cool weather, peak season',
-      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+      color: 'glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20'
     },
     {
       value: 'Summer',
       label: 'Summer (Mar-May)', 
       description: 'Hot weather, off-season deals',
-      color: 'bg-orange-50 border-orange-200 hover:bg-orange-100'
+      color: 'glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20'
     },
     {
       value: 'Monsoon',
       label: 'Monsoon (Jun-Sep)',
       description: 'Rainy season, lush landscapes',
-      color: 'bg-green-50 border-green-200 hover:bg-green-100'
+      color: 'glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20'
     },
     {
       value: 'Flexible',
       label: 'Flexible',
       description: 'I can travel anytime',
-      color: 'bg-purple-50 border-purple-200 hover:bg-purple-100'
+      color: 'glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20'
     }
   ];
 
@@ -127,18 +127,18 @@ export default function DestinationAndTiming({
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-gray-900">Where & When?</h2>
-        <p className="text-gray-600">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-pink-400 bg-clip-text text-transparent">Where & When?</h2>
+        <p className="text-gray-600 dark:text-gray-400">
           Tell us your dream destination and preferred timing
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Destination Section */}
-        <Card className="p-6 space-y-4">
+        <Card className="p-6 space-y-4 glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 shadow-web3">
           <div className="flex items-center space-x-2">
-            <MapPin className="w-5 h-5 text-blue-600" />
-            <Label className="text-base font-medium">Destination</Label>
+            <MapPin className="w-5 h-5 text-web3-violet-600 dark:text-web3-violet-400" />
+            <Label className="text-base font-medium text-gray-900 dark:text-white">Destination</Label>
           </div>
           
           <div className="space-y-3">
@@ -157,7 +157,7 @@ export default function DestinationAndTiming({
                     value={data.destination}
                     onChange={(e) => onChange({ ...data, destination: e.target.value })}
                     placeholder="e.g., Goa, Dubai, Thailand..."
-                    className="text-base flex-1"
+                    className="text-base flex-1 border-web3-violet-300 dark:border-web3-violet-700 rounded-xl focus:ring-web3-violet-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300"
                     onFocus={() => setShowSuggestions(true)}
                     required
                   />
@@ -165,7 +165,7 @@ export default function DestinationAndTiming({
                     type="button"
                     variant="outline"
                     onClick={handleShowImageCapture}
-                    className="flex-shrink-0 px-3"
+                    className="flex-shrink-0 px-3 border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                     title="Take photo to identify location"
                   >
                     <Camera className="w-4 h-4" />
@@ -178,9 +178,9 @@ export default function DestinationAndTiming({
             )}
 
             {showSuggestions && (
-              <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
+              <div className="space-y-3 p-3 glass dark:glass-dark border border-web3-violet-200 dark:border-web3-violet-800/30 rounded-xl shadow-web3">
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-700">Popular in India</h4>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Popular in India</h4>
                   <div className="flex flex-wrap gap-2">
                     {popularDestinations.domestic.slice(0, 6).map((dest) => (
                       <Button
@@ -188,7 +188,7 @@ export default function DestinationAndTiming({
                         variant="outline"
                         size="sm"
                         onClick={() => handleDestinationSuggestion(dest)}
-                        className="text-xs h-7"
+                        className="text-xs h-7 border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                       >
                         {dest}
                       </Button>
@@ -197,7 +197,7 @@ export default function DestinationAndTiming({
                 </div>
                 
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-700">International</h4>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">International</h4>
                   <div className="flex flex-wrap gap-2">
                     {popularDestinations.international.slice(0, 6).map((dest) => (
                       <Button
@@ -205,7 +205,7 @@ export default function DestinationAndTiming({
                         variant="outline"
                         size="sm"
                         onClick={() => handleDestinationSuggestion(dest)}
-                        className="text-xs h-7"
+                        className="text-xs h-7 border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                       >
                         {dest}
                       </Button>
@@ -217,7 +217,7 @@ export default function DestinationAndTiming({
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSuggestions(false)}
-                  className="text-xs text-gray-500"
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                 >
                   Close suggestions
                 </Button>
@@ -227,11 +227,11 @@ export default function DestinationAndTiming({
 
           {/* Origin */}
           <div className="space-y-3">
-            <Label className="text-base font-medium">From (Your City)</Label>
+            <Label className="text-base font-medium text-gray-900 dark:text-white">From (Your City)</Label>
             <select
               value={data.origin}
               onChange={(e) => onChange({ ...data, origin: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-web3-violet-300 dark:border-web3-violet-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-web3-violet-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300"
               required
             >
               <option value="">Select your city</option>
@@ -245,17 +245,17 @@ export default function DestinationAndTiming({
         </Card>
 
         {/* Motivation Section */}
-        <Card className="p-6 space-y-4">
+        <Card className="p-6 space-y-4 glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 shadow-web3">
           <div className="flex items-center space-x-2">
-            <Lightbulb className="w-5 h-5 text-yellow-600" />
-            <Label className="text-base font-medium">Why this trip?</Label>
+            <Lightbulb className="w-5 h-5 text-web3-purple-600 dark:text-web3-purple-400" />
+            <Label className="text-base font-medium text-gray-900 dark:text-white">Why this trip?</Label>
           </div>
           
           <div className="space-y-3">
             <select
               value={data.motivation}
               onChange={(e) => onChange({ ...data, motivation: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-web3-violet-300 dark:border-web3-violet-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-web3-violet-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300"
               required
             >
               <option value="">Select motivation</option>
@@ -281,35 +281,35 @@ export default function DestinationAndTiming({
       </div>
 
       {/* Season Selection */}
-      <Card className="p-6 space-y-4">
+      <Card className="p-6 space-y-4 glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 shadow-web3">
         <div className="flex items-center space-x-2">
-          <Calendar className="w-5 h-5 text-green-600" />
-          <Label className="text-base font-medium">Preferred Season</Label>
+          <Calendar className="w-5 h-5 text-web3-pink-600 dark:text-web3-pink-400" />
+          <Label className="text-base font-medium text-gray-900 dark:text-white">Preferred Season</Label>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {seasons.map((season) => (
             <div
               key={season.value}
-              className={`cursor-pointer p-4 rounded-lg border-2 transition-all duration-200 ${
+              className={`cursor-pointer p-4 rounded-xl border-2 transition-all duration-300 ${
                 data.season === season.value
-                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                  ? 'border-web3-violet-500 dark:border-web3-violet-400 bg-gradient-to-br from-web3-violet-100 to-web3-purple-100 dark:from-web3-violet-900/30 dark:to-web3-purple-900/30 ring-2 ring-web3-violet-200 dark:ring-web3-violet-800/50 shadow-web3'
                   : season.color
               }`}
               onClick={() => onChange({ ...data, season: season.value })}
             >
-              <h3 className="font-medium text-gray-900">{season.label}</h3>
-              <p className="text-sm text-gray-600 mt-1">{season.description}</p>
+              <h3 className="font-medium text-gray-900 dark:text-white">{season.label}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{season.description}</p>
             </div>
           ))}
         </div>
       </Card>
 
       {/* Duration Selection */}
-      <Card className="p-6 space-y-4">
+      <Card className="p-6 space-y-4 glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 shadow-web3">
         <div className="flex items-center space-x-2">
-          <Clock className="w-5 h-5 text-purple-600" />
-          <Label className="text-base font-medium">Trip Duration</Label>
+          <Clock className="w-5 h-5 text-web3-violet-600 dark:text-web3-violet-400" />
+          <Label className="text-base font-medium text-gray-900 dark:text-white">Trip Duration</Label>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -317,7 +317,11 @@ export default function DestinationAndTiming({
             <Button
               key={duration.value}
               variant={data.duration === duration.value ? "default" : "outline"}
-              className="h-auto p-4 flex flex-col items-start space-y-1"
+              className={`h-auto p-4 flex flex-col items-start space-y-1 transition-all duration-300 ${
+                data.duration === duration.value 
+                  ? 'bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 text-white shadow-web3 border-0' 
+                  : 'border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20'
+              }`}
               onClick={() => onChange({ ...data, duration: duration.value })}
             >
               <span className="font-medium">{duration.label}</span>
@@ -329,9 +333,9 @@ export default function DestinationAndTiming({
 
       {/* Summary */}
       {data.destination && data.origin && (
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 mb-2">Trip Summary</h3>
-          <p className="text-sm text-gray-600">
+        <div className="glass dark:glass-dark border border-web3-violet-200 dark:border-web3-violet-800/30 rounded-xl p-4 shadow-web3">
+          <h3 className="font-medium bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-pink-400 bg-clip-text text-transparent mb-2">Trip Summary</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             {data.origin} → {data.destination}
             {data.season && data.season !== 'Flexible' && ` • ${data.season}`}
             {data.duration && data.duration !== 'Flexible' && ` • ${data.duration} days`}

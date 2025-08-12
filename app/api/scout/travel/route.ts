@@ -154,6 +154,8 @@ CRITICAL REQUIREMENTS:
 4. Include Indian restaurant options and dietary considerations
 5. Return ONLY valid JSON, no markdown or additional text
 6. Be specific and accurate with practical information
+${input.travelType === 'family' && input.travelerDetails.familyMembers?.children ? 
+`7. FAMILY TRAVEL FOCUS: Consider children's ages for activity recommendations, accommodation with family rooms, child-friendly restaurants, safety considerations, and age-appropriate attractions` : ''}
 
 TRAVEL CONTEXT:
 - Origin: ${input.origin}  
@@ -164,6 +166,10 @@ TRAVEL CONTEXT:
 - Dietary: ${input.dietary}
 - Travel Style: ${input.travelStyle}
 - Domestic Travel: ${isDomestic ? 'Yes (within India)' : 'No (international)'}
+${input.travelType === 'family' && input.travelerDetails.familyMembers ? 
+`- Family Composition: ${input.travelerDetails.familyMembers.adults} adult(s), ${input.travelerDetails.familyMembers.children} child(ren)${input.travelerDetails.familyMembers.childrenAges?.length ? ` (ages: ${input.travelerDetails.familyMembers.childrenAges.join(', ')})` : ''}${input.travelerDetails.familyMembers.seniors ? `, ${input.travelerDetails.familyMembers.seniors} senior(s)` : ''}` : ''}${input.travelType === 'single' && input.travelerDetails.travelerAge ? 
+`- Traveler Age: ${input.travelerDetails.travelerAge} years` : ''}${input.travelType === 'group' && input.travelerDetails.groupSize ? 
+`- Group Size: ${input.travelerDetails.groupSize} people` : ''}
 
 ${input.rawApiData ? `RAW API DATA FOR REFERENCE:
 Travel Guide: ${JSON.stringify(input.rawApiData.travelGuide)}

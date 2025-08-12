@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Grid3x3, X, Maximize2 } from 'lucide-react';
 import { TravelDeck, TravelDeckCard } from '@/lib/types/travel-deck';
 import { Button } from '@/components/ui/button';
@@ -38,19 +38,14 @@ export default function TravelDeckView({ deck, onClose, className = '' }: Travel
   
   console.log(`TravelDeckView - Current index: ${currentCardIndex}, Total cards: ${totalCards}`);
   console.log(`Current card:`, currentCard);
-  
-  // Handle missing or invalid card
-  if (!currentCard) {
-    console.error(`No card found at index ${currentCardIndex}`);
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500">Error: Card not found</p>
-          <p className="text-sm text-gray-500">Index: {currentCardIndex}, Total: {totalCards}</p>
-        </div>
-      </div>
-    );
-  }
+
+  const goToNext = useCallback(() => {
+    setCurrentCardIndex((prev) => (prev + 1) % totalCards);
+  }, [totalCards]);
+
+  const goToPrevious = useCallback(() => {
+    setCurrentCardIndex((prev) => (prev - 1 + totalCards) % totalCards);
+  }, [totalCards]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -67,15 +62,20 @@ export default function TravelDeckView({ deck, onClose, className = '' }: Travel
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [currentCardIndex, viewMode]);
-
-  const goToNext = () => {
-    setCurrentCardIndex((prev) => (prev + 1) % totalCards);
-  };
-
-  const goToPrevious = () => {
-    setCurrentCardIndex((prev) => (prev - 1 + totalCards) % totalCards);
-  };
+  }, [viewMode, goToPrevious, goToNext, onClose]);
+  
+  // Handle missing or invalid card
+  if (!currentCard) {
+    console.error(`No card found at index ${currentCardIndex}`);
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500">Error: Card not found</p>
+          <p className="text-sm text-gray-500">Index: {currentCardIndex}, Total: {totalCards}</p>
+        </div>
+      </div>
+    );
+  }
 
   const goToCard = (index: number) => {
     setCurrentCardIndex(index);
@@ -88,7 +88,7 @@ export default function TravelDeckView({ deck, onClose, className = '' }: Travel
     
     try {
       switch (card.type) {
-        case 'overview':
+        case 'trip-summary':
           return <OverviewCardView card={card as any} isFullscreen={isFullscreen} />;
         case 'itinerary':
           return <ItineraryCardView card={card as any} isFullscreen={isFullscreen} />;

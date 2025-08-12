@@ -58,22 +58,22 @@ export default function TravelerDetails({
     return (
       <div className="space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold text-gray-900">Tell us about yourself</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-pink-400 bg-clip-text text-transparent">Tell us about yourself</h2>
+          <p className="text-gray-600 dark:text-gray-400">
             This helps us recommend age-appropriate activities
           </p>
         </div>
 
-        <Card className="p-6">
+        <Card className="p-6 glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 shadow-web3">
           <div className="space-y-4">
-            <Label htmlFor="travelerAge" className="text-base font-medium">
+            <Label htmlFor="travelerAge" className="text-base font-medium text-gray-900 dark:text-white">
               Your Age
             </Label>
             <select
               id="travelerAge"
               value={data.travelerAge || ''}
               onChange={(e) => onChange({ ...data, travelerAge: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-web3-violet-300 dark:border-web3-violet-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-web3-violet-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300"
               required
             >
               <option value="">Select your age</option>
@@ -92,26 +92,27 @@ export default function TravelerDetails({
     return (
       <div className="space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold text-gray-900">Family Details</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-pink-400 bg-clip-text text-transparent">Family Details</h2>
+          <p className="text-gray-600 dark:text-gray-400">
             Tell us about your family members for better recommendations
           </p>
         </div>
 
-        <Card className="p-6 space-y-6">
+        <Card className="p-6 space-y-6 glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 shadow-web3">
           {/* Adults */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <User className="w-5 h-5 text-blue-600" />
+              <User className="w-5 h-5 text-web3-violet-600 dark:text-web3-violet-400" />
               <div>
-                <Label className="text-base font-medium">Adults</Label>
-                <p className="text-sm text-gray-600">Ages 18 and above</p>
+                <Label className="text-base font-medium text-gray-900 dark:text-white">Adults</Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Ages 18 and above</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
                 size="sm"
+                className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                 onClick={() =>
                   updateFamilyMembers('adults', Math.max(1, familyMembers.adults - 1))
                 }
@@ -125,6 +126,7 @@ export default function TravelerDetails({
               <Button
                 variant="outline"
                 size="sm"
+                className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                 onClick={() =>
                   updateFamilyMembers('adults', Math.min(10, familyMembers.adults + 1))
                 }
@@ -138,16 +140,17 @@ export default function TravelerDetails({
           {/* Children */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Baby className="w-5 h-5 text-green-600" />
+              <Baby className="w-5 h-5 text-web3-purple-600 dark:text-web3-purple-400" />
               <div>
-                <Label className="text-base font-medium">Children</Label>
-                <p className="text-sm text-gray-600">Ages 0-17</p>
+                <Label className="text-base font-medium text-gray-900 dark:text-white">Children</Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Ages 0-17</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
                 size="sm"
+                className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                 onClick={() => {
                   const newCount = Math.max(0, familyMembers.children - 1);
                   updateFamilyMembers('children', newCount);
@@ -165,6 +168,7 @@ export default function TravelerDetails({
               <Button
                 variant="outline"
                 size="sm"
+                className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                 onClick={() => {
                   const newCount = Math.min(8, familyMembers.children + 1);
                   updateFamilyMembers('children', newCount);
@@ -179,11 +183,11 @@ export default function TravelerDetails({
           {/* Children Ages */}
           {familyMembers.children > 0 && (
             <div className="space-y-3">
-              <Label className="text-base font-medium">Children's Ages</Label>
+              <Label className="text-base font-medium text-gray-900 dark:text-white">Children&apos;s Ages</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {Array.from({ length: familyMembers.children }, (_, index) => (
                   <div key={index}>
-                    <Label className="text-sm text-gray-600">
+                    <Label className="text-sm text-gray-600 dark:text-gray-400">
                       Child {index + 1}
                     </Label>
                     <select
@@ -191,7 +195,7 @@ export default function TravelerDetails({
                       onChange={(e) =>
                         handleChildAgeChange(index, parseInt(e.target.value))
                       }
-                      className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full mt-1 px-3 py-2 text-sm border border-web3-violet-300 dark:border-web3-violet-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-web3-violet-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300"
                       required
                     >
                       <option value="">Age</option>
@@ -206,16 +210,17 @@ export default function TravelerDetails({
           {/* Seniors */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <User className="w-5 h-5 text-purple-600" />
+              <User className="w-5 h-5 text-web3-pink-600 dark:text-web3-pink-400" />
               <div>
-                <Label className="text-base font-medium">Seniors (Optional)</Label>
-                <p className="text-sm text-gray-600">Ages 60 and above</p>
+                <Label className="text-base font-medium text-gray-900 dark:text-white">Seniors (Optional)</Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Ages 60 and above</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
                 size="sm"
+                className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                 onClick={() =>
                   updateFamilyMembers('seniors', Math.max(0, (familyMembers.seniors || 0) - 1))
                 }
@@ -229,6 +234,7 @@ export default function TravelerDetails({
               <Button
                 variant="outline"
                 size="sm"
+                className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 transition-all duration-300"
                 onClick={() =>
                   updateFamilyMembers('seniors', Math.min(5, (familyMembers.seniors || 0) + 1))
                 }
@@ -241,9 +247,9 @@ export default function TravelerDetails({
         </Card>
 
         {/* Family Summary */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 mb-2">Family Summary</h3>
-          <p className="text-sm text-gray-600">
+        <div className="glass dark:glass-dark border border-web3-violet-200 dark:border-web3-violet-800/30 rounded-xl p-4 shadow-web3">
+          <h3 className="font-medium bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-pink-400 bg-clip-text text-transparent mb-2">Family Summary</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             {familyMembers.adults} adult{familyMembers.adults > 1 ? 's' : ''}
             {familyMembers.children > 0 && 
               `, ${familyMembers.children} child${familyMembers.children > 1 ? 'ren' : ''}`
@@ -261,16 +267,16 @@ export default function TravelerDetails({
     return (
       <div className="space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold text-gray-900">Group Details</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-pink-400 bg-clip-text text-transparent">Group Details</h2>
+          <p className="text-gray-600 dark:text-gray-400">
             Tell us about your group for better planning
           </p>
         </div>
 
-        <Card className="p-6 space-y-6">
+        <Card className="p-6 space-y-6 glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 shadow-web3">
           {/* Group Size */}
           <div className="space-y-3">
-            <Label className="text-base font-medium">Total Group Size</Label>
+            <Label className="text-base font-medium text-gray-900 dark:text-white">Total Group Size</Label>
             <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
@@ -289,7 +295,7 @@ export default function TravelerDetails({
                 onChange={(e) =>
                   onChange({ ...data, groupSize: parseInt(e.target.value) })
                 }
-                className="w-20 text-center"
+                className="w-20 text-center border-web3-violet-300 dark:border-web3-violet-700 rounded-xl focus:ring-web3-violet-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300"
                 placeholder="Size"
               />
               <Button
@@ -302,12 +308,12 @@ export default function TravelerDetails({
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-            <p className="text-sm text-gray-600">Minimum 3 people for group travel</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Minimum 3 people for group travel</p>
           </div>
 
           {/* Group Composition */}
           <div className="space-y-3">
-            <Label className="text-base font-medium">Group Composition</Label>
+            <Label className="text-base font-medium text-gray-900 dark:text-white">Group Composition</Label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {[
                 { value: 'friends', label: 'Friends' },
@@ -320,7 +326,11 @@ export default function TravelerDetails({
                   onClick={() =>
                     onChange({ ...data, groupComposition: option.value as any })
                   }
-                  className="h-12"
+                  className={`h-12 transition-all duration-300 ${
+                    data.groupComposition === option.value 
+                      ? 'bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 text-white shadow-web3 border-0' 
+                      : 'border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20'
+                  }`}
                 >
                   {option.label}
                 </Button>
@@ -331,7 +341,7 @@ export default function TravelerDetails({
           {/* Number of Families (for family groups) */}
           {data.groupComposition && (
             <div className="space-y-3">
-              <Label className="text-base font-medium">
+              <Label className="text-base font-medium text-gray-900 dark:text-white">
                 Number of Units 
                 (Optional)
               </Label>
@@ -344,7 +354,7 @@ export default function TravelerDetails({
                   onChange({ ...data, groupFamilies: parseInt(e.target.value) })
                 }
                 placeholder="Number of units in your group"
-                className="max-w-xs"
+                className="max-w-xs border-web3-violet-300 dark:border-web3-violet-700 rounded-xl focus:ring-web3-violet-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300"
               />
             </div>
           )}
@@ -352,9 +362,9 @@ export default function TravelerDetails({
 
         {/* Group Summary */}
         {data.groupSize && (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-2">Group Summary</h3>
-            <p className="text-sm text-gray-600">
+          <div className="glass dark:glass-dark border border-web3-violet-200 dark:border-web3-violet-800/30 rounded-xl p-4 shadow-web3">
+            <h3 className="font-medium bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-pink-400 bg-clip-text text-transparent mb-2">Group Summary</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               {data.groupSize} people total
               {data.groupComposition && ` • ${data.groupComposition}`}
               {data.groupFamilies && ` • ${data.groupFamilies} units`}

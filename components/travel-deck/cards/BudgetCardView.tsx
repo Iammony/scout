@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DollarSign, TrendingUp, PiggyBank, CreditCard, Info, ArrowLeftRight } from 'lucide-react';
 import { BudgetCard } from '@/lib/types/travel-deck';
 import { Badge } from '@/components/ui/badge';
@@ -18,29 +18,11 @@ export default function BudgetCardView({ card, isFullscreen }: BudgetCardViewPro
   const [selectedBudgetTier, setSelectedBudgetTier] = useState<'tight' | 'comfortable' | 'luxury'>('comfortable');
   const [showCurrencyConverter, setShowCurrencyConverter] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
-  
-  // Safety check for content
-  if (!content) {
-    return (
-      <div className="space-y-6 p-4 text-center">
-        <p className="text-gray-500">No budget data available</p>
-        <p className="text-sm text-gray-400">Please try regenerating this card</p>
-      </div>
-    );
-  }
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [convertedBudgets, setConvertedBudgets] = useState<Record<string, number>>({});
   
-  // Get destination currency
-  const destinationCurrency = content.currency === 'INR' ? 'USD' : 'INR';
-  
-  useEffect(() => {
-    if (showCurrencyConverter) {
-      loadExchangeRate();
-    }
-  }, [showCurrencyConverter, selectedCurrency]);
-  
-  const loadExchangeRate = async () => {
+  const loadExchangeRate = useCallback(async () => {
+    if (!content) return;
     try {
       const rate = await currencyAPI.getExchangeRate(content.currency, selectedCurrency);
       if (rate) {
@@ -57,7 +39,26 @@ export default function BudgetCardView({ card, isFullscreen }: BudgetCardViewPro
     } catch (error) {
       console.error('Failed to load exchange rate:', error);
     }
-  };
+  }, [content, selectedCurrency]);
+
+  useEffect(() => {
+    if (showCurrencyConverter) {
+      loadExchangeRate();
+    }
+  }, [showCurrencyConverter, loadExchangeRate]);
+  
+  // Safety check for content
+  if (!content) {
+    return (
+      <div className="space-y-6 p-4 text-center">
+        <p className="text-gray-500">No budget data available</p>
+        <p className="text-sm text-gray-400">Please try regenerating this card</p>
+      </div>
+    );
+  }
+  
+  // Get destination currency
+  const destinationCurrency = content.currency === 'INR' ? 'USD' : 'INR';
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {

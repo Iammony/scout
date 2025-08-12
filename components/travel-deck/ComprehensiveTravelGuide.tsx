@@ -624,7 +624,7 @@ export default function ComprehensiveTravelGuide({ deck, onClose, className = ''
                 {isExpanded && (
                   <CardContent className="pt-0">
                     <div className="space-y-6">
-                      {cards.map((card, index) => (
+                      {(cards as any[]).map((card: any, index: number) => (
                         <div key={card.id} className="bg-white rounded-lg p-6 shadow-sm travel-card border-l-4" style={{borderLeftColor: config.color.replace('text-', '#')}}>
                           {card.title !== config.title && (
                             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">

@@ -2,9 +2,9 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  username: string; // Required unique username for all users
   avatar?: string;
-  provider: 'local' | 'google' | 'facebook' | 'apple' | 'twitter';
-  providerId?: string;
+  passwordHash: string; // All users now use local authentication
   createdAt: string;
   updatedAt: string;
   isEmailVerified: boolean;
@@ -13,16 +13,6 @@ export interface User {
     language: string;
     notifications: boolean;
   };
-}
-
-export interface LocalUser extends User {
-  provider: 'local';
-  passwordHash: string;
-}
-
-export interface SocialUser extends User {
-  provider: 'google' | 'facebook' | 'apple' | 'twitter';
-  providerId: string;
 }
 
 export interface AuthSession {
@@ -38,4 +28,15 @@ export interface LoginCredentials {
 
 export interface SignupCredentials extends LoginCredentials {
   name: string;
+  username: string; // Required username during signup
+}
+
+export interface UsernameSetupCredentials {
+  username: string;
+}
+
+export interface UsernameAvailabilityResponse {
+  available: boolean;
+  username: string;
+  suggestions?: string[];
 }

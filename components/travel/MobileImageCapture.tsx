@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import Image from 'next/image';
 import { Camera, Upload, ArrowRight, X, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -142,10 +143,11 @@ const MobileImageCapture: React.FC<MobileImageCaptureProps> = ({
     return (
       <div className="min-h-screen bg-black flex flex-col">
         <div className="flex-1 relative">
-          <img 
+          <Image 
             src={capturedImage} 
             alt="Captured" 
-            className="w-full h-full object-contain"
+            fill
+            className="object-contain"
           />
           
           {isProcessing && (

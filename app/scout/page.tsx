@@ -1,9 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowLeft, Calendar, MapPin, User, LogOut, Camera } from 'lucide-react';
+import Image from 'next/image';
+import { Sparkles, ArrowLeft, Calendar, MapPin, User, LogOut, Camera, Zap, Globe2, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { SafeThemeToggle } from '@/components/ui/safe-theme-toggle';
+import { AnimatedBreadcrumbNav } from '@/components/ui/breadcrumb-nav';
+import { useBreadcrumbNavigation, useBreadcrumb } from '@/lib/contexts/breadcrumb-context';
 import JourneyForm from '@/components/travel/JourneyForm';
 import ComprehensiveTravelGuide from '@/components/travel-deck/ComprehensiveTravelGuide';
 import AuthModal from '@/components/auth/AuthModal';
@@ -12,6 +16,7 @@ import { TravelDeck } from '@/lib/types/travel-deck';
 import { useAuth } from '@/hooks/useAuth';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import MobileImageCapture from '@/components/travel/MobileImageCapture';
+import { TravelCardsGrid } from '@/components/travel/TravelCardsGrid';
 import { getGuestTravelCards, storeGuestTravelCard, getGuestSessionInfo } from '@/lib/utils/session';
 
 interface TravelCard {
@@ -37,6 +42,55 @@ const Scout: React.FC = () => {
   const { user, isAuthenticated, isLoading, logout, refreshAuth } = useAuth();
   const { isMobile } = useDeviceDetection();
   const sessionInfo = getGuestSessionInfo();
+  
+  // Breadcrumb navigation
+  const { breadcrumbs } = useBreadcrumb();
+  const { 
+    setHomeBreadcrumb, 
+    setCreateJourneyBreadcrumb, 
+    setViewCardBreadcrumb, 
+    setMobileCaptureBreadcrumb,
+    navigateTo 
+  } = useBreadcrumbNavigation();
+
+  // Update breadcrumbs based on current view
+  useEffect(() => {
+    switch (view) {
+      case 'home':
+        setHomeBreadcrumb();
+        break;
+      case 'create':
+        setCreateJourneyBreadcrumb();
+        break;
+      case 'mobile-image':
+        setMobileCaptureBreadcrumb();
+        break;
+      case 'card':
+        if (currentCard) {
+          setViewCardBreadcrumb(currentCard.destination);
+        }
+        break;
+    }
+  }, [view, currentCard, setHomeBreadcrumb, setCreateJourneyBreadcrumb, setMobileCaptureBreadcrumb, setViewCardBreadcrumb]);
+
+  // Handle breadcrumb navigation
+  const handleBreadcrumbNavigation = (item: any, index: number) => {
+    switch (index) {
+      case 0: // Home
+        setView('home');
+        break;
+      case 1: // Second level navigation
+        if (item.label.includes('Create')) {
+          setView('create');
+        } else if (item.label.includes('Capture')) {
+          setView('mobile-image');
+        } else if (item.label.includes('Travel to')) {
+          setView('card');
+        }
+        break;
+    }
+    navigateTo(index);
+  };
 
   const handleCreateCard = async (travelInput: TravelCaptureInput) => {
     setIsCreating(true);
@@ -225,47 +279,104 @@ const Scout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-black transition-colors duration-300">
+      {/* Web3 Mesh Background */}
+      <div className="fixed inset-0 bg-web3-mesh dark:bg-web3-mesh-dark opacity-20 dark:opacity-10 pointer-events-none" />
+      
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
+      <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg border-b border-gray-200 dark:border-gray-800 px-4 py-3">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">Scout Travel</h1>
-            <p className="text-sm text-gray-600">Plan your perfect trip in 30 seconds</p>
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-web3-violet-500 to-web3-purple-500 flex items-center justify-center shadow-neon">
+              <Rocket className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-pink-400 bg-clip-text text-transparent">Scout Travel</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">AI-Powered Journey Planning</p>
+            </div>
           </div>
-          <Button
-            onClick={() => setView(isMobile ? 'mobile-image' : 'create')}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2"
-          >
-            {isMobile ? <Camera className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
-            <span>{isMobile ? 'Snap Destination' : 'Create Travel Card'}</span>
-          </Button>
+          <div className="flex items-center space-x-3">
+            {/* Authentication Section */}
+            {isAuthenticated && user ? (
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-web3-violet-500 to-web3-purple-500 flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Hello, <span className="text-web3-violet-600 dark:text-web3-violet-400">@{user.username}</span>
+                  </span>
+                </div>
+                <Button
+                  onClick={logout}
+                  variant="outline"
+                  size="sm"
+                  className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20"
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => setShowAuthModal(true)}
+                variant="outline"
+                size="sm"
+                className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 flex items-center space-x-2"
+              >
+                <User className="w-4 h-4" />
+                <span>Sign Up</span>
+              </Button>
+            )}
+            
+            <SafeThemeToggle />
+            
+            <Button
+              onClick={() => setView(isMobile ? 'mobile-image' : 'create')}
+              className="bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 hover:from-web3-violet-500 hover:to-web3-purple-500 text-white px-6 py-2 rounded-xl shadow-web3 hover:shadow-neon transition-all duration-300 flex items-center space-x-2 border border-white/20"
+            >
+              {isMobile ? <Camera className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+              <span className="font-semibold">{isMobile ? 'Snap & Go' : 'Create Journey'}</span>
+            </Button>
+          </div>
         </div>
       </div>
 
+      {/* Breadcrumb Navigation */}
+      <AnimatedBreadcrumbNav 
+        items={breadcrumbs} 
+        onNavigate={handleBreadcrumbNavigation}
+      />
+
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* User Info Card */}
-        <Card className="p-6 mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <Card className="p-6 mb-8 glass dark:glass-dark border-web3-violet-200 dark:border-web3-violet-800/30 shadow-web3">
           <div className="flex items-center justify-between">
             {isAuthenticated && user ? (
               <>
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-web3-violet-500 to-web3-purple-500 rounded-full flex items-center justify-center shadow-neon">
                     {user.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full" />
+                      <Image 
+                        src={user.avatar} 
+                        alt={user.name} 
+                        width={48}
+                        height={48}
+                        className="rounded-full" 
+                      />
                     ) : (
                       <User className="w-6 h-6 text-white" />
                     )}
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Welcome back, {user.name}!</h2>
-                    <p className="text-gray-600">Your travel cards are saved permanently</p>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Welcome back, {user.name}!</h2>
+                    <p className="text-gray-600 dark:text-gray-400">Your travel cards are saved permanently</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <Button 
                     variant="outline" 
-                    className="border-red-300 text-red-700 hover:bg-red-100"
+                    className="border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
                     onClick={logout}
                   >
                     <LogOut className="w-4 h-4 mr-2" />
@@ -276,115 +387,45 @@ const Scout: React.FC = () => {
             ) : (
               <>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Guest Session</h2>
-                  <p className="text-gray-600">
-                    You've created {sessionInfo.cardsCreated} travel cards • 
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Guest Session</h2>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    You&apos;ve created {sessionInfo.cardsCreated} travel cards • 
                     {sessionInfo.daysRemaining} days remaining
                   </p>
                 </div>
                 <div className="text-right space-x-2">
                   <Button 
                     variant="outline" 
-                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-100 dark:hover:bg-web3-violet-900/20"
                     onClick={() => { setAuthMode('signup'); setShowAuthModal(true); }}
                   >
                     Create Account
                   </Button>
                   <Button 
                     variant="ghost" 
-                    className="text-blue-700 hover:bg-blue-100"
+                    className="text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-100 dark:hover:bg-web3-violet-900/20"
                     onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
                   >
                     Sign In
                   </Button>
-                  <p className="text-xs text-gray-500 mt-1">Save cards permanently</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Save cards permanently</p>
                 </div>
               </>
             )}
           </div>
         </Card>
 
-        {/* Travel Cards List */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">Your Travel Cards</h2>
-            {travelCards.length > 0 && (
-              <p className="text-gray-600">{travelCards.length} cards created</p>
-            )}
-          </div>
-
-          {travelCards.length === 0 ? (
-            <Card className="p-12 text-center">
-              <div className="space-y-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-                  <MapPin className="w-8 h-8 text-gray-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">No travel cards yet</h3>
-                  <p className="text-gray-600 mt-1">
-                    Create your first travel card to get comprehensive travel information
-                  </p>
-                </div>
-                <Button
-                  onClick={() => setView(isMobile ? 'mobile-image' : 'create')}
-                  className="mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                >
-                  {isMobile ? <Camera className="w-4 h-4 mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                  {isMobile ? 'Snap Your Destination' : 'Create Your First Card'}
-                </Button>
-              </div>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {travelCards.map((card) => (
-                <Card
-                  key={card.id}
-                  className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => {
-                    setCurrentCard(card);
-                    setView('card');
-                  }}
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <h3 className="font-semibold text-gray-900 truncate">
-                          {card.destination}
-                        </h3>
-                        <p className="text-sm text-gray-600">From {card.origin}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="flex items-center space-x-1 text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs font-medium">
-                          <Calendar className="w-3 h-3" />
-                          <span>{card.travelType}</span>
-                        </div>
-                        {card.deck && (
-                          <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                            {card.deck.cards.length} cards
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>Created {formatDate(card.createdAt)}</span>
-                      {!isAuthenticated && card.isGuestCard && card.expiresAt && (
-                        <span className="text-amber-600">
-                          {getDaysRemaining(card.expiresAt)}d left
-                        </span>
-                      )}
-                      {isAuthenticated && (
-                        <span className="text-green-600 text-xs">
-                          Saved
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Travel Cards Grid */}
+        <TravelCardsGrid
+          cards={travelCards}
+          onCardClick={(card) => {
+            setCurrentCard(card);
+            setView('card');
+          }}
+          onCreateCard={() => setView(isMobile ? 'mobile-image' : 'create')}
+          onMobileCapture={() => setView('mobile-image')}
+          isMobile={isMobile}
+        />
 
         {/* Features Section */}
         <Card className="p-8 mt-12">
@@ -423,7 +464,6 @@ const Scout: React.FC = () => {
           // Refresh travel cards after login
           setTravelCards(getGuestTravelCards());
         }}
-        defaultMode={authMode}
       />
     </div>
   );

@@ -1,5 +1,12 @@
 import { TravelCaptureInput } from '@/lib/types/travel';
 import { rateLimiter, extractApiHost } from './rate-limiter';
+import { 
+  RAPIDAPI_ENDPOINTS, 
+  getRapidApiHeaders, 
+  buildApiUrl, 
+  getApiConfig,
+  validateApiConfig 
+} from '@/lib/config/rapidapi-endpoints';
 
 // RapidAPI configuration
 const RAPIDAPI_BASE_URL = 'https://rapidapi.com';
@@ -126,23 +133,32 @@ export class RapidAPIClient {
   }
 
   /**
-   * Get travel guide information using Travel Guide API
+   * Get hotel information using TripAdvisor API
    */
-  async getTravelGuideInfo(destination: string, interests: string[] = ['cultural', 'historical', 'food']): Promise<any> {
+  async getTripAdvisorHotels(geoId: string): Promise<any> {
     try {
       return await this.callAPI(
-        'travel-guide-api-city-guide-top-places.p.rapidapi.com',
-        '/check?noqueue=1',
-        {
-          region: destination,
-          language: 'en',
-          interests: interests
-        },
-        'POST'
+        'tripadvisor-com1.p.rapidapi.com',
+        `/hotels/search?geoId=${geoId}`
       );
     } catch (error) {
-      console.error('Travel Guide API error:', error);
-      return this.getMockTravelGuideData(destination);
+      console.error('TripAdvisor Hotels API error:', error);
+      return this.getMockTripAdvisorData(geoId);
+    }
+  }
+
+  /**
+   * Search for location geoId for TripAdvisor API
+   */
+  async searchTripAdvisorLocation(query: string): Promise<any> {
+    try {
+      return await this.callAPI(
+        'tripadvisor-com1.p.rapidapi.com',
+        `/locations/search?query=${encodeURIComponent(query)}`
+      );
+    } catch (error) {
+      console.error('TripAdvisor Location Search API error:', error);
+      return this.getMockLocationSearch(query);
     }
   }
 
@@ -317,12 +333,22 @@ export class RapidAPIClient {
     const isDomestic = this.isDomesticTravel(input.origin, input.destination);
     const travelerCount = this.getTravelerCount(input);
     
-    // Determine interests based on travel style
-    const interests = this.getInterestsFromTravelStyle(input.travelStyle);
+    // Get TripAdvisor location data first
+    let tripAdvisorHotels = null;
+    try {
+      const locationSearch = await this.searchTripAdvisorLocation(input.destination);
+      if (locationSearch && locationSearch.length > 0) {
+        const geoId = locationSearch[0].geoId || locationSearch[0].id;
+        if (geoId) {
+          tripAdvisorHotels = await this.getTripAdvisorHotels(geoId);
+        }
+      }
+    } catch (error) {
+      console.error('TripAdvisor data fetch error:', error);
+    }
     
     // Prepare all API requests
     const requests = [
-      this.getTravelGuideInfo(input.destination, interests),
       this.getFlightInfo(input.origin, input.destination, undefined, travelerCount),
       this.getHotelInfo(input.destination),
     ];
@@ -341,12 +367,12 @@ export class RapidAPIClient {
       const results = await Promise.allSettled(requests);
       
       return {
-        travelGuide: results[0].status === 'fulfilled' ? results[0].value : null,
-        flights: results[1].status === 'fulfilled' ? results[1].value : null,
-        hotels: results[2].status === 'fulfilled' ? results[2].value : null,
-        trains: isDomestic && results[3]?.status === 'fulfilled' ? results[3].value : null,
-        visa: !isDomestic && results[3]?.status === 'fulfilled' ? results[3].value : null,
-        interests: results[4]?.status === 'fulfilled' ? results[4].value : null,
+        tripAdvisorHotels: tripAdvisorHotels,
+        flights: results[0].status === 'fulfilled' ? results[0].value : null,
+        hotels: results[1].status === 'fulfilled' ? results[1].value : null,
+        trains: isDomestic && results[2]?.status === 'fulfilled' ? results[2].value : null,
+        visa: !isDomestic && results[2]?.status === 'fulfilled' ? results[2].value : null,
+        interests: results[3]?.status === 'fulfilled' ? results[3].value : null,
         isDomestic: isDomestic,
         travelerCount: travelerCount,
         errors: results.map((result, index) => 
@@ -676,32 +702,94 @@ export class RapidAPIClient {
     ];
   }
 
-  private getMockTravelGuideData(destination: string) {
+  private getMockTripAdvisorData(geoId: string) {
     return {
-      region: destination,
-      attractions: [
+      data: [
         {
-          name: `Top ${destination} Attraction`,
-          type: 'Cultural',
-          rating: 4.5,
-          description: `Must-visit cultural site in ${destination}`,
-          tips: 'Best visited in the morning'
+          id: "1",
+          title: "Grand Hotel & Resort",
+          bubbleRating: {
+            count: "4.5",
+            rating: 4.5
+          },
+          priceForDisplay: "₹3,500",
+          strikethroughPrice: null,
+          pricingPeriod: "per night",
+          hasFreeCancellation: true,
+          cardPhoto: {
+            sizes: {
+              urlTemplate: "https://example.com/hotel1.jpg"
+            }
+          },
+          commerceInfo: {
+            externalUrl: "https://example.com/book-hotel-1"
+          }
         },
         {
-          name: `${destination} Food Street`,
-          type: 'Food',
-          rating: 4.2,
-          description: `Famous food street in ${destination}`,
-          tips: 'Try local specialties'
+          id: "2", 
+          title: "City Center Inn",
+          bubbleRating: {
+            count: "4.1",
+            rating: 4.1
+          },
+          priceForDisplay: "₹2,200",
+          strikethroughPrice: "₹2,800",
+          pricingPeriod: "per night",
+          hasFreeCancellation: false,
+          cardPhoto: {
+            sizes: {
+              urlTemplate: "https://example.com/hotel2.jpg"
+            }
+          },
+          commerceInfo: {
+            externalUrl: "https://example.com/book-hotel-2"
+          }
+        },
+        {
+          id: "3",
+          title: "Luxury Palace Hotel",
+          bubbleRating: {
+            count: "4.8",
+            rating: 4.8
+          },
+          priceForDisplay: "₹8,500",
+          strikethroughPrice: null,
+          pricingPeriod: "per night",
+          hasFreeCancellation: true,
+          cardPhoto: {
+            sizes: {
+              urlTemplate: "https://example.com/hotel3.jpg"
+            }
+          },
+          commerceInfo: {
+            externalUrl: "https://example.com/book-hotel-3"
+          }
         }
       ],
-      localInfo: {
-        bestTimeToVisit: 'October to March',
-        weather: 'Pleasant',
-        culture: 'Rich cultural heritage',
-        safety: 'Generally safe for tourists'
+      paging: {
+        results: "3",
+        totalResults: "150"
       }
     };
+  }
+
+  private getMockLocationSearch(query: string) {
+    return [
+      {
+        geoId: "60763",
+        title: query,
+        subtitle: "City",
+        hierarchy: query,
+        thumbnailUrl: "https://example.com/location.jpg"
+      },
+      {
+        geoId: "60764", 
+        title: `${query} Downtown`,
+        subtitle: "Neighborhood",
+        hierarchy: `${query} > Downtown`,
+        thumbnailUrl: "https://example.com/location2.jpg"
+      }
+    ];
   }
 
   private getMockInterestsData() {

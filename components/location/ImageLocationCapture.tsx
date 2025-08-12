@@ -60,19 +60,6 @@ export function ImageLocationCapture({
     }
   }, []);
 
-  const handleLocationConfirm = useCallback((location: string) => {
-    onLocationSelected(location);
-    resetState();
-  }, [onLocationSelected]);
-
-  const handleCancel = useCallback(() => {
-    if (captureState === 'capturing') {
-      setCaptureState('initial');
-    } else {
-      resetState();
-    }
-  }, [captureState]);
-
   const resetState = useCallback(() => {
     setCaptureState('initial');
     setCapturedImage(null);
@@ -80,10 +67,23 @@ export function ImageLocationCapture({
     setAnalysisError('');
   }, []);
 
+  const handleLocationConfirm = useCallback((location: string) => {
+    onLocationSelected(location);
+    resetState();
+  }, [onLocationSelected, resetState]);
+
+  const handleCancel = useCallback(() => {
+    if (captureState === 'capturing') {
+      setCaptureState('initial');
+    } else {
+      resetState();
+    }
+  }, [captureState, resetState]);
+
   const handleSkip = useCallback(() => {
     onSkip?.();
     resetState();
-  }, [onSkip]);
+  }, [onSkip, resetState]);
 
   // Show image capture interface
   if (captureState === 'capturing') {

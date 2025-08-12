@@ -5,6 +5,7 @@ import { rapidAPIClient } from './rapidapi';
 import { currencyAPI } from './currency';
 import { dataQualityAssessor, ValidatedApiData } from './data-quality';
 import { enhancedContentGenerator, EnhancedContentRequest } from './enhanced-content-generator';
+import { unsplashClient } from './unsplash';
 import { TravelDeck, TravelDeckCard } from '@/lib/types/travel-deck';
 import { TravelCaptureInput } from '@/lib/types/travel';
 import { v4 as uuidv4 } from 'uuid';
@@ -66,7 +67,7 @@ export class TravelDeckGenerator {
     
     // Wait for all cards to complete
     const generatedCards = await Promise.all(cardPromises);
-    cards.push(...generatedCards.filter(card => card !== null));
+    cards.push(...generatedCards.filter((card: any) => card !== null));
     
     // Sort cards by priority
     cards.sort((a, b) => a.priority - b.priority);
@@ -102,6 +103,56 @@ export class TravelDeckGenerator {
     console.log(`🎉 Enhanced travel deck generated with ${cards.length} cards in ${processingTime}ms`);
     console.log(`📊 Quality: ${(qualityMetrics.overall * 100).toFixed(1)}%, Strategy: ${contentStrategy}`);
     return deck;
+  }
+
+  /**
+   * Get appropriate images for specific card type
+   */
+  private async getCardImages(cardType: string, destination: string): Promise<{
+    hero?: any;
+    gallery?: any[];
+    background?: any;
+  } | undefined> {
+    if (!unsplashClient.isConfigured()) {
+      return undefined;
+    }
+
+    try {
+      switch (cardType) {
+        case 'trip-summary':
+        case 'overview':
+          const heroImages = await unsplashClient.getDestinationImages(destination, 1, 1);
+          return heroImages.length > 0 ? { hero: heroImages[0] } : undefined;
+
+        case 'attractions':
+          const attractionImages = await unsplashClient.getActivityImages('attractions sightseeing', destination, 3);
+          return attractionImages.length > 0 ? { gallery: attractionImages } : undefined;
+
+        case 'dining':
+          const foodImages = await unsplashClient.getFoodImages('local cuisine', destination, 2);
+          return foodImages.length > 0 ? { gallery: foodImages } : undefined;
+
+        case 'accommodation':
+          const hotelImages = await unsplashClient.getAccommodationImages(destination, 'hotel', 2);
+          return hotelImages.length > 0 ? { gallery: hotelImages } : undefined;
+
+        case 'transport':
+          const transportImages = await unsplashClient.getActivityImages('transportation airport train', destination, 1);
+          return transportImages.length > 0 ? { background: transportImages[0] } : undefined;
+
+        case 'itinerary':
+          const itineraryImages = await unsplashClient.getDestinationImages(destination, 1, 2);
+          return itineraryImages.length > 0 ? { hero: itineraryImages[0], gallery: itineraryImages.slice(1) } : undefined;
+
+        default:
+          // For other card types, get a general destination image
+          const generalImages = await unsplashClient.getDestinationImages(destination, 1, 1);
+          return generalImages.length > 0 ? { background: generalImages[0] } : undefined;
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch images for card type ${cardType}:`, error);
+      return undefined;
+    }
   }
 
   /**
@@ -270,6 +321,12 @@ export class TravelDeckGenerator {
     // Generate content using enhanced multi-LLM system
     const generatedContent = await enhancedContentGenerator.generateCardContent(contentRequest);
     
+    // Fetch images for the card
+    const cardImages = await this.getCardImages(cardType, input.destination).catch(error => {
+      console.warn(`Failed to fetch images for ${cardType}:`, error);
+      return undefined;
+    });
+
     // Create card with quality metadata
     const card: TravelDeckCard = {
       id: `card_${uuidv4()}`,
@@ -291,7 +348,8 @@ export class TravelDeckGenerator {
       priority: this.getCardPriority(cardType),
       isActive: true,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      images: cardImages
     } as TravelDeckCard;
     
     console.log(`✅ Generated ${cardType} card: ${generatedContent.dataSource} source, ${(generatedContent.confidence * 100).toFixed(1)}% confidence`);

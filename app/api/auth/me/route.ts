@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userRepository } from '@/lib/db/axiodb-user-repository';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const sessionId = request.cookies.get('session')?.value;

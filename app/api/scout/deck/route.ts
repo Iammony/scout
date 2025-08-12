@@ -3,36 +3,14 @@ import { validateCompleteTravelInput } from '@/lib/validations/travel';
 import { rapidAPIClient } from '@/lib/api/rapidapi';
 import { travelDeckGenerator } from '@/lib/api/travel-deck-generator';
 import { TravelCaptureInput } from '@/lib/types/travel';
-import { verifyAltchaSolution } from '@/lib/captcha/altcha';
+
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { altcha, ...travelData } = body;
-    
-    // Verify ALTCHA captcha for non-development environments
-    if (process.env.NODE_ENV === 'production' && !altcha) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Captcha verification required',
-        },
-        { status: 400 }
-      );
-    }
-
-    if (altcha && process.env.NODE_ENV === 'production') {
-      const isCaptchaValid = await verifyAltchaSolution(altcha);
-      if (!isCaptchaValid) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid captcha solution',
-          },
-          { status: 400 }
-        );
-      }
-    }
+    // Simply parse the request body without HMAC verification
+    const travelData = await request.json();
     
     // Validate the travel input
     const validation = validateCompleteTravelInput(travelData);

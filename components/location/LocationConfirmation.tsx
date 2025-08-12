@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { MapPin, Edit3, Check, X, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -116,9 +117,11 @@ export function LocationConfirmation({
             </div>
             {imagePreview && (
               <div className="mt-4">
-                <img
+                <Image
                   src={imagePreview}
                   alt="Analyzing"
+                  width={400}
+                  height={128}
                   className="w-full h-32 object-cover rounded-lg border border-gray-200"
                 />
               </div>
@@ -141,9 +144,11 @@ export function LocationConfirmation({
       <CardContent className="space-y-4">
         {imagePreview && (
           <div className="relative">
-            <img
+            <Image
               src={imagePreview}
               alt="Captured location"
+              width={400}
+              height={128}
               className="w-full h-32 object-cover rounded-lg border border-gray-200"
             />
           </div>
